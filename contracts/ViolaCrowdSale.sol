@@ -17,6 +17,9 @@ contract ViolaCrowdSale is Ownable {
 
   enum State { Preparing, NotStarted, Active, Refunding, Ended, Stopped }
 
+  //Status of contract
+  State public status;
+
   // The token being sold
   ERC20 public myToken;
 
@@ -86,10 +89,14 @@ contract ViolaCrowdSale is Ownable {
     buyTokens(msg.sender);
   }
 
-  function startCrowdSale() external {
+  function startCrowdSale() onlyOwner external {
     require(myToken != address(0));
+    require(status != State.NotStarted);
+    
     startTime = now;
     endTime = now + (86400 * 20); //20 days
+
+    status = State.Active;
   }
 
   // low level token purchase function
