@@ -65,7 +65,7 @@ contract ViolaCrowdSale is Ownable {
   }
 
   function setToken(address _tokenAddress) onlyOwner external {
-    require(address(myToken) == address(0));    
+    require(address(_tokenAddress) != address(0));    
         myToken = ERC20(_tokenAddress);
     }
 
