@@ -20,11 +20,14 @@ contract ViolaCrowdSale is Ownable {
   // The token being sold
   ERC20 public myToken;
 
-  //To tie different address to same customer
-  bool public requireCustomerId;
-
   //For whitelisted
-  mapping(address=>uint) public addressCap;
+  mapping(address=>uint) public maxBuyCap;
+
+  mapping(address=>uint) public investedSum;
+
+  mapping(address=>uint) public tokensAllocated;
+
+  mapping(address=>uint) public bonusTokensAllocated;
 
   // start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
@@ -36,8 +39,12 @@ contract ViolaCrowdSale is Ownable {
   // how many token units a buyer gets per wei
   uint256 public rate;
 
+  uint public bonusTokenRate;
+
   // amount of raised money in wei
   uint256 public weiRaised;
+
+  uint256 public totalTokensAllocated;
 
   // when to refresh cap
   uint public capRefreshPeriod = 86400;
@@ -45,14 +52,14 @@ contract ViolaCrowdSale is Ownable {
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
-   * @param beneficiary who got the tokens
    * @param value weis paid for purchase
    * @param amount amount of tokens purchased
+   * @param bonusAmount bonus amount of token allocated
    */
-  event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+  event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
 
 
-  function ViolaCrowdSale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet) public {
+  function ViolaCrowdSale(uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) public {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
@@ -62,6 +69,7 @@ contract ViolaCrowdSale is Ownable {
     endTime = _endTime;
     rate = _rate;
     wallet = _wallet;
+    bonusTokenRate = _bonusRate;
   }
 
   function setToken(address _tokenAddress) onlyOwner external {
@@ -69,13 +77,18 @@ contract ViolaCrowdSale is Ownable {
         myToken = ERC20(_tokenAddress);
     }
 
-  function setWhitelistAddress( address _user, uint _cap ) onlyOwner external {
-        addressCap[_user] = _cap;
+  function setBonusRate(uint _bonusRate) onlyOwner external {
+    require(address(_bonusRate) > 0);    
+        bonusTokenRate = _bonusRate;
+    }
+
+  function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
+        maxBuyCap[_investor] = _cap;
         //add event
     }
 
   function getAddressCap( address _user ) constant public returns(uint) {
-        uint cap = addressCap[_user];
+        uint cap = maxBuyCap[_user];
         if (cap > 0) {
           return cap;
         }
@@ -93,25 +106,47 @@ contract ViolaCrowdSale is Ownable {
   }
 
   // low level token purchase function
-  function buyTokens(address beneficiary) public payable {
-    require(addressCap[msg.sender] > 0);
+  function buyTokens(address investor) public payable {
+    require(tx.gasprice <= 50000000000 wei);
+    
     require(myToken != address(0));
-    require(beneficiary != address(0));
     require(validPurchase());
 
     uint256 weiAmount = msg.value;
 
-    // calculate token amount to be created
-    uint256 tokens = weiAmount.mul(rate);
+    checkCapAndRecord(investor,weiAmount);
+
+    allocateToken(investor,weiAmount);
 
     // update state
     weiRaised = weiRaised.add(weiAmount);
 
-    assignTokens(beneficiary,tokens);
-
-    TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
-
     forwardFunds();
+  }
+
+  function checkCapAndRecord(address investor, uint weiAmount) internal {
+      uint remaindingCap = maxBuyCap[investor];
+      require(remaindingCap > weiAmount);
+      maxBuyCap[investor] = remaindingCap.sub(weiAmount);
+      investedSum[investor] = investedSum[investor].add(weiAmount);
+  }
+
+    function allocateToken(address investor, uint weiAmount) internal {
+        // calculate token amount to be created
+        uint tokens = weiAmount.mul(rate);
+        uint bonusTokens = weiAmount.mul(bonusTokenRate);
+        
+        uint tokensToAllocate = tokens.add(bonusTokens);
+        
+        require(getTokensLeft() > tokensToAllocate);
+        totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
+
+        //assignTokens(investor,tokens);
+
+        tokensAllocated[investor] = tokensAllocated[investor]+tokens;
+        bonusTokensAllocated[investor] = tokensAllocated[investor]+bonusTokens;
+
+        TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
 
   // send ether to the fund collection wallet
@@ -133,12 +168,13 @@ contract ViolaCrowdSale is Ownable {
   }
 
   function getTokensLeft() public constant returns (uint) {
-    return myToken.allowance(owner, this);
+    return myToken.allowance(owner, this).sub(totalTokensAllocated);
   }
   function assignTokens(address receiver, uint tokenAmount) internal {
      require(myToken.transferFrom(owner, receiver, tokenAmount));
   }
-  function isCrowdsaleFull() public constant returns (bool) {
-    return getTokensLeft() == 0;
-  }
+
+  function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {
+        token.transfer(owner,amount);
+    }
 }
