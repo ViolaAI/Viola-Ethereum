@@ -46,5 +46,41 @@ contract('ViolaCrowdsale', function(accounts) {
             assert.isAbove(parseInt(endTime), parseInt(startTime), 'end time is earlier than start time')
         })
     })
+
+    it("owner should be able to allocate token supply to crowdsale", function() {
+        var violaTokenInstance
+        var violaCrowdsaleInstance
+        return ViolaCrowdsale.deployed().then(function(instance) {
+            violaCrowdsaleInstance = instance
+            return ViolaToken.deployed()
+        }).then(function(instance) {
+            violaTokenInstance = instance
+            return violaTokenInstance.approve(violaCrowdsaleInstance.address,500000000000)
+        }).then(function(data) {
+            console.log(data)
+            return violaCrowdsaleInstance.getTokensLeft.call();
+        }).then(function(returnValue){
+            console.log(returnValue)
+        })
+    })
+    
+    it("User should be able to send eth to crowdsale", function() {
+        var violaTokenInstance
+        var violaCrowdsaleInstance
+        return ViolaCrowdsale.deployed().then(function(instance) {
+            violaCrowdsaleInstance = instance
+            return ViolaToken.deployed()
+        }).then(function(instance) {
+            violaTokenInstance = instance
+        }).then(function(){
+            return violaCrowdsaleInstance.sendTransaction({
+                from: accounts[1],
+                gas: 500000,
+                value: 50000000
+              })
+        }).then(function(result) {
+        })
+    })
+
   })
 })
