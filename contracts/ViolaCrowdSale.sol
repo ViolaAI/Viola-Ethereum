@@ -15,7 +15,10 @@ import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 contract ViolaCrowdsale is Ownable {
   using SafeMath for uint256;
 
-  enum State { Preparing, NotStarted, Active, Refunding, Ended, Stopped }
+  enum State { Preparing, NotStarted, Active, Paused, Ended, Stopped }
+
+  //Status of contract
+  State public status;
 
   // The token being sold
   ERC20 public myToken;
@@ -69,14 +72,58 @@ contract ViolaCrowdsale is Ownable {
     endTime = _endTime;
     rate = _rate;
     wallet = _wallet;
+<<<<<<< HEAD
     bonusTokenRate = _bonusRate;
+=======
+    status = State.Preparing;
+  }
+
+  // Crowdsale lifecycle
+  function startCrowdSale() onlyOwner external {
+    require(myToken != address(0));
+    require(status == State.NotStarted);
+    
+    startTime = now;
+    endTime = now + (86400 * 20); //20 days
+
+    status = State.Active;
+  }
+
+  function endCrowdSale() onlyOwner external {
+    require(status == State.Active);
+
+    status = State.Ended;
+  }
+
+  function pauseCrowdSale() onlyOwner external {
+    require(status == State.Active);
+
+    status = State.Paused;
+  }
+
+  function unpauseCrowdSale() onlyOwner external {
+    require(status == State.Paused);
+
+    status = State.Active;
+  }
+
+  function stopCrowdSale() onlyOwner external {
+    require(status == State.Active);
+
+    status = State.Stopped;
+>>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
   }
 
   function setToken(address _tokenAddress) onlyOwner external {
-    require(address(_tokenAddress) != address(0));    
-        myToken = ERC20(_tokenAddress);
-    }
+    require(status == State.Preparing);
+    require(address(_tokenAddress) != address(0));
+        
+    myToken = ERC20(_tokenAddress);
 
+    status = State.NotStarted;
+  }
+
+<<<<<<< HEAD
   function setBonusRate(uint _bonusRate) onlyOwner external {
     require(address(_bonusRate) > 0);    
         bonusTokenRate = _bonusRate;
@@ -92,23 +139,45 @@ contract ViolaCrowdsale is Ownable {
         if (cap > 0) {
           return cap;
         }
+=======
+  function setWhitelistAddress( address _user, uint _cap ) onlyOwner external {
+    require(_cap > 0);
+    require(_user != address(0));
+
+    addressCap[_user] = _cap;
+  }
+
+  function setRate(uint _rate) onlyOwner external {
+    require(_rate > 0);
+
+    rate = _rate;
+  }
+
+  function getAddressCap( address _user ) constant public returns(uint) {
+    require(_user != address(0));
+
+    uint cap = addressCap[_user];
+    if (cap > 0) {
+      return cap;
+>>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
     }
+  }
 
   // fallback function can be used to buy tokens
   function () external payable {
     buyTokens(msg.sender);
   }
 
-  function startCrowdSale() external {
-    require(myToken != address(0));
-    startTime = now;
-    endTime = now + (86400 * 20); //20 days
-  }
-
   // low level token purchase function
+<<<<<<< HEAD
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
     
+=======
+  function buyTokens(address beneficiary) public payable {
+    require(status == State.Active);
+    require(addressCap[msg.sender] > 0);
+>>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
     require(myToken != address(0));
     require(validPurchase());
 
