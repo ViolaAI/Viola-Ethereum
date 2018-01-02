@@ -112,7 +112,7 @@ contract ViolaCrowdsale is Ownable {
     require(myToken != address(0));
     require(validPurchase());
 
-    uint256 weiAmount = msg.value;
+    uint weiAmount = msg.value;
 
     checkCapAndRecord(investor,weiAmount);
 
@@ -143,8 +143,8 @@ contract ViolaCrowdsale is Ownable {
 
         //assignTokens(investor,tokens);
 
-        tokensAllocated[investor] = tokensAllocated[investor]+tokens;
-        bonusTokensAllocated[investor] = tokensAllocated[investor]+bonusTokens;
+        tokensAllocated[investor] = tokens;
+        bonusTokensAllocated[investor] = bonusTokens;
 
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
