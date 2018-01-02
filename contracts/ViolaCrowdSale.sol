@@ -72,9 +72,6 @@ contract ViolaCrowdsale is Ownable {
     endTime = _endTime;
     rate = _rate;
     wallet = _wallet;
-<<<<<<< HEAD
-    bonusTokenRate = _bonusRate;
-=======
     status = State.Preparing;
   }
 
@@ -111,7 +108,6 @@ contract ViolaCrowdsale is Ownable {
     require(status == State.Active);
 
     status = State.Stopped;
->>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
   }
 
   function setToken(address _tokenAddress) onlyOwner external {
@@ -123,13 +119,14 @@ contract ViolaCrowdsale is Ownable {
     status = State.NotStarted;
   }
 
-<<<<<<< HEAD
   function setBonusRate(uint _bonusRate) onlyOwner external {
-    require(address(_bonusRate) > 0);    
-        bonusTokenRate = _bonusRate;
+    require(_bonusRate > 0);  
+    bonusTokenRate = _bonusRate;
     }
 
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
+        require(_cap > 0);
+        require(_user != address(0));
         maxBuyCap[_investor] = _cap;
         //add event
     }
@@ -139,28 +136,11 @@ contract ViolaCrowdsale is Ownable {
         if (cap > 0) {
           return cap;
         }
-=======
-  function setWhitelistAddress( address _user, uint _cap ) onlyOwner external {
-    require(_cap > 0);
-    require(_user != address(0));
-
-    addressCap[_user] = _cap;
-  }
-
   function setRate(uint _rate) onlyOwner external {
     require(_rate > 0);
-
     rate = _rate;
   }
 
-  function getAddressCap( address _user ) constant public returns(uint) {
-    require(_user != address(0));
-
-    uint cap = addressCap[_user];
-    if (cap > 0) {
-      return cap;
->>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
-    }
   }
 
   // fallback function can be used to buy tokens
@@ -169,15 +149,9 @@ contract ViolaCrowdsale is Ownable {
   }
 
   // low level token purchase function
-<<<<<<< HEAD
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
     
-=======
-  function buyTokens(address beneficiary) public payable {
-    require(status == State.Active);
-    require(addressCap[msg.sender] > 0);
->>>>>>> e4187dce0d72f4dfbae10b6108beb2048fb0432b
     require(myToken != address(0));
     require(validPurchase());
 
