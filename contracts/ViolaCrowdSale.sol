@@ -126,7 +126,7 @@ contract ViolaCrowdsale is Ownable {
 
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
         require(_cap > 0);
-        require(_user != address(0));
+        require(_investor != address(0));
         maxBuyCap[_investor] = _cap;
         //add event
     }
@@ -136,11 +136,11 @@ contract ViolaCrowdsale is Ownable {
         if (cap > 0) {
           return cap;
         }
+  }
+
   function setRate(uint _rate) onlyOwner external {
     require(_rate > 0);
     rate = _rate;
-  }
-
   }
 
   // fallback function can be used to buy tokens
