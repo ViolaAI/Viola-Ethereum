@@ -125,11 +125,4 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setWhitelistAddress(0x0, 2000).should.be.rejectedWith('revert')
         })
     })
-
-    describe('getting whitelist address', function () {
-        it('should not accept 0x0 address', async function() {
-            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], 2000)            
-            let cap = await this.violaCrowdSaleInstance.getAddressCap(0x0).should.be.rejectedWith('revert')
-        })
-    })
 })
