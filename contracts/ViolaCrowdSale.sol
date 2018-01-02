@@ -113,11 +113,21 @@ contract ViolaCrowdSale is Ownable {
   }
 
   function setWhitelistAddress( address _user, uint _cap ) onlyOwner external {
+    require(_cap > 0);
+    require(_user != address(0));
+
     addressCap[_user] = _cap;
-        //add event
+  }
+
+  function setRate(uint _rate) onlyOwner external {
+    require(_rate > 0);
+
+    rate = _rate;
   }
 
   function getAddressCap( address _user ) constant public returns(uint) {
+    require(_user != address(0));
+
     uint cap = addressCap[_user];
     if (cap > 0) {
       return cap;

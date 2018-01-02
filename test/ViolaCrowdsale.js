@@ -57,8 +57,79 @@ contract('ViolaCrowdsale', function (accounts) {
     })
 
     describe('starting crowdsale', function () {
+        it('should not start crowdsale in Preparing status', async function () {
+            await this.violaCrowdSaleInstance.startCrowdSale().should.be.rejectedWith('revert')
+        })
+
+        it('should start crowdsale', async function () {
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)            
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(2))
+        })
+    })
+
+    describe('ending crowdsale', function () {
         beforeEach(async function() {
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+        })
+
+        it('should end crowdsale from Active status', async function() {
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(4))
+        })
+    })
+
+    describe('pausing crowdsale', function () {
+        beforeEach(async function () {
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+        })
+
+        it('should pause crowdsale from Active status', async function () {
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.pauseCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(3))
+        })
+
+        it('should unpause crowdsale from Paused status', async function () {
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.pauseCrowdSale()
+            await this.violaCrowdSaleInstance.unpauseCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(2))
+        })
+
+        it('should stop crowdsale from Active status', async function () {
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.stopCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(5))
+        })
+    })
+
+    describe('setting whitelist address', function () {
+        it('should accept whitelist address', async function() {
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], 2000)
+            let cap = await this.violaCrowdSaleInstance.getAddressCap(accounts[1])
+            cap.should.be.bignumber.equal(new BigNumber(2000))
+        })
+
+        it('should not accept 0 cap', async function() {
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], 0).should.be.rejectedWith('revert')
+        })
+
+        it('should not accept 0x0 address', async function() {
+            await this.violaCrowdSaleInstance.setWhitelistAddress(0x0, 2000).should.be.rejectedWith('revert')
+        })
+    })
+
+    describe('getting whitelist address', function () {
+        it('should not accept 0x0 address', async function() {
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], 2000)            
+            let cap = await this.violaCrowdSaleInstance.getAddressCap(0x0).should.be.rejectedWith('revert')
         })
     })
 })
