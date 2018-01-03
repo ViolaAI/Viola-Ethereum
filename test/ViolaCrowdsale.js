@@ -62,16 +62,11 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should start crowdsale', async function () {
-            let withinPeriod = await this.violaCrowdSaleInstance.withinPeriod.call()
-            console.log(withinPeriod)
-            let startTime = await this.violaCrowdSaleInstance.startTime.call()
-            console.log(startTime)
-            let now = await this.violaCrowdSaleInstance.getNow.call()
-            console.log(now)
-            // await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)            
-            // await this.violaCrowdSaleInstance.startCrowdSale()
-            // let state = await this.violaCrowdSaleInstance.status.call()
-            // state.should.be.bignumber.equal(new BigNumber(2))
+            await increaseTime(10) 
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)            
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            let state = await this.violaCrowdSaleInstance.status.call()
+            state.should.be.bignumber.equal(new BigNumber(2))
         })
     })
 
@@ -81,6 +76,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should end crowdsale from Active status', async function() {
+            await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
@@ -94,6 +90,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should pause crowdsale from Active status', async function () {
+            await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.pauseCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
@@ -101,6 +98,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should unpause crowdsale from Paused status', async function () {
+            await increaseTime(10)            
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.pauseCrowdSale()
             await this.violaCrowdSaleInstance.unpauseCrowdSale()
@@ -109,6 +107,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should stop crowdsale from Active status', async function () {
+            await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.stopCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
@@ -135,6 +134,7 @@ contract('ViolaCrowdsale', function (accounts) {
     describe('bonus rate', function(){
         beforeEach(async function() {
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+            await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
         })
         it('at the beginning of Day 1 should be 30', async function(){
@@ -144,7 +144,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('at the end of Day 2 should be 30', async function(){
-            await increaseTime(86400 * 2 -1)
+            await increaseTime(86400 * 2 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(30))
         })
@@ -156,7 +156,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('at the end of Day 10 should be 15', async function(){
-            await increaseTime(86400 * 10 - 1)
+            await increaseTime(86400 * 10 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
         })
@@ -168,7 +168,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('at the end should be 8', async function(){
-            await increaseTime(86400 * 20 - 1) // End after 20 days
+            await increaseTime(86400 * 20 - 10) // End after 20 days
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(8))
         })
