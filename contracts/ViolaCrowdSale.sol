@@ -44,12 +44,15 @@ contract ViolaCrowdsale is Ownable {
 
   uint public bonusTokenRate;
 
+  //Extra bonus token to give *per ETH*
   uint[] bonusTokenRateByLevels = [30, 15, 8];
 
   // amount of raised money in wei
   uint256 public weiRaised;
 
   uint256 public totalTokensAllocated;
+
+  uint256 public totalReservedTokenAllocated;
 
   // when to refresh cap
   uint public capRefreshPeriod = 86400;
@@ -64,11 +67,7 @@ contract ViolaCrowdsale is Ownable {
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
 
 
-<<<<<<< Updated upstream
-  function ViolaCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) public {
-=======
   function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) onlyOwner external {
->>>>>>> Stashed changes
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
@@ -181,7 +180,7 @@ contract ViolaCrowdsale is Ownable {
     function allocateToken(address investor, uint weiAmount) internal {
         // calculate token amount to be created
         uint tokens = weiAmount.mul(rate);
-        uint bonusTokens = weiAmount.mul(bonusTokenRate);
+        uint bonusTokens = weiAmount.mul(getTimeBasedBonusRate());
         
         uint tokensToAllocate = tokens.add(bonusTokens);
         
@@ -193,6 +192,67 @@ contract ViolaCrowdsale is Ownable {
 
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
+
+    function claimTokens() external {
+      require(status == State.Ended);
+
+      address tokenReceiver = msg.sender;
+      uint tokensToClaim = tokensAllocated[msg.sender];
+      tokensAllocated[tokenReceiver] = 0;
+
+      myToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+
+      //Add event here
+
+    }
+
+    function distributeICOTokens(address _tokenReceiver) onlyOwner external {
+      require(status == State.Ended);
+
+      address tokenReceiver = _tokenReceiver;
+      uint tokensToClaim = tokensAllocated[msg.sender];
+      tokensAllocated[tokenReceiver] = 0;
+
+      myToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+
+      //Add event here
+
+    }
+
+    function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
+      require(status == State.Ended);
+
+      myToken.transferFrom(owner, _tokenReceiver, _amount);
+
+      //Add event here
+
+    }
+    //For external purchases via btc/fiat
+    function externalPurchaseTokens(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
+
+      uint256 tokensToAllocate = _amount.add(_bonusAmount);
+
+      require(getTokensLeft() > tokensToAllocate);
+      totalTokensAllocated = totalTokensAllocated.add(_amount);
+      totalReservedTokenAllocated = totalReservedTokenAllocated.add(tokensToAllocate);
+
+      tokensAllocated[_investor] = _amount;
+      bonusTokensAllocated[_investor] = _bonusAmount;
+      
+      //Add event here
+
+    }
+
+    //For owner to reserve token for misc
+    function reserveTokens(uint _amount) onlyOwner external {
+
+      require(getTokensLeft() > _amount);
+      totalTokensAllocated = totalTokensAllocated.add(_amount);
+      totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
+
+      //Add event here
+    }
+
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
