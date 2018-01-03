@@ -64,7 +64,11 @@ contract ViolaCrowdsale is Ownable {
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
 
 
+<<<<<<< Updated upstream
   function ViolaCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) public {
+=======
+  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) onlyOwner external {
+>>>>>>> Stashed changes
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
