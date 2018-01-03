@@ -12,7 +12,7 @@ import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 contract ViolaVault is Ownable {
   using SafeMath for uint256;
 
-  enum State { Active, Refunding, Closed }
+  enum State { Active, Closed }
 
   mapping (address => uint256) public deposited;
   address public wallet;
@@ -45,5 +45,9 @@ contract ViolaVault is Ownable {
     deposited[investor] = 0;
     investor.transfer(depositedValue);
     Refunded(investor, depositedValue);
+  }
+
+  function getDeposited(address investor) constant public returns(uint256) {
+    return deposited[investor];
   }
 }
