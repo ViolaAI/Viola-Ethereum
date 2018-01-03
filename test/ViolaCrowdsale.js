@@ -125,7 +125,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setWhitelistAddress(0x0, 2000).should.be.rejectedWith('revert')
         })
     })
-
+  
     describe('bonus rate', function(){
         beforeEach(async function() {
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
@@ -174,5 +174,16 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
     })
+  
+    describe('setting rate', function () {
+        it('should accept rate', async function() {
+            await this.violaCrowdSaleInstance.setRate(10)
+            let rate = await this.violaCrowdSaleInstance.rate.call()
+            rate.should.be.bignumber.equal(new BigNumber(10))
+        })
 
+        it('should not accept 0 rate', async function() {
+            await this.violaCrowdSaleInstance.setRate(0).should.be.rejectedWith('revert')
+        })
+    })
 })
