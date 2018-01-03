@@ -39,7 +39,7 @@ contract ViolaVault is Ownable {
     wallet.transfer(this.balance);
   }
 
-  function refund(address investor) public {
+  function refund(address investor) onlyOwner public {
     require(state == State.Active);
     uint256 depositedValue = deposited[investor];
     deposited[investor] = 0;
