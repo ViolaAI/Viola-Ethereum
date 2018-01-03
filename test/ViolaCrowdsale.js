@@ -206,18 +206,19 @@ contract('ViolaCrowdsale', function (accounts) {
         beforeEach(async function() {
             await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+            await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
         })
         
-        // it('should transfer funds', async function () {
-        //     let walletAddress = this.violaCrowdSaleInstance.wallet.call()            
-        //     let beforeFund = web3.eth.getBalance(walletAddress)
-        //     await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
+        it('should transfer funds', async function () {
+            let walletAddress = await this.violaCrowdSaleInstance.wallet.call()
+            let beforeFund = web3.eth.getBalance(walletAddress)
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
 
-        //     let afterFund = web3.eth.getBalance(this.violaCrowdSaleInstance.wallet.address)
-        //     let diffBalance = afterFund.minus(beforeFund)
-        //     console.log(diffBalance)
-        // })
+            let afterFund = web3.eth.getBalance(walletAddress)
+            let diffBalance = afterFund.minus(beforeFund)
+            diffBalance.should.be.bignumber.equal(web3.toWei('1', 'ether'))
+        })
     })
 })
