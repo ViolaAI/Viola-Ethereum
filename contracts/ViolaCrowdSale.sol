@@ -44,6 +44,8 @@ contract ViolaCrowdsale is Ownable {
 
   uint public bonusTokenRate;
 
+  uint[] bonusTokenRateByLevels = [30, 15, 8];
+
   // amount of raised money in wei
   uint256 public weiRaised;
 
@@ -233,4 +235,19 @@ contract ViolaCrowdsale is Ownable {
   function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {
         token.transfer(owner,amount);
     }
+
+  function getTimeBasedBonusRate() public view returns(uint) {
+    bool withinTwoDay = now >= startTime && now <= (startTime + (86400 * 2));
+    bool withinDay3and10 = now > (startTime + (86400 * 2)) && now <= (startTime + (86400 * 10));
+    bool afterDay10 = now > (startTime + (86400 * 10)) && now <= endTime;
+    if (withinTwoDay) {
+      return bonusTokenRateByLevels[0];
+    } else if (withinDay3and10) {
+      return bonusTokenRateByLevels[1];
+    } else if (afterDay10) {
+      return bonusTokenRateByLevels[2];
+    } else {
+      return 0;
+    }
+  }
 }
