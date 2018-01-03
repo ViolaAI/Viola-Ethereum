@@ -62,7 +62,7 @@ contract ViolaCrowdsale is Ownable {
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
 
 
-  function ViolaCrowdale(uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) public {
+  function ViolaCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) public {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
@@ -73,15 +73,14 @@ contract ViolaCrowdsale is Ownable {
     rate = _rate;
     wallet = _wallet;
     status = State.Preparing;
+    bonusTokenRate = _bonusRate;
   }
 
   // Crowdsale lifecycle
   function startCrowdSale() onlyOwner external {
+    require(withinPeriod());
     require(myToken != address(0));
     require(status == State.NotStarted);
-    
-    startTime = now;
-    endTime = now + (86400 * 20); //20 days
 
     status = State.Active;
   }
@@ -151,9 +150,8 @@ contract ViolaCrowdsale is Ownable {
   // low level token purchase function
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
-    
-    require(myToken != address(0));
-    require(validPurchase());
+    require(status == State.Active);
+    require(msg.value > 0);
 
     uint weiAmount = msg.value;
 
@@ -184,8 +182,6 @@ contract ViolaCrowdsale is Ownable {
         require(getTokensLeft() > tokensToAllocate);
         totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
 
-        //assignTokens(investor,tokens);
-
         tokensAllocated[investor] = tokens;
         bonusTokensAllocated[investor] = bonusTokens;
 
@@ -199,15 +195,17 @@ contract ViolaCrowdsale is Ownable {
   }
 
   // @return true if the transaction can buy tokens
-  function validPurchase() internal view returns (bool) {
-    bool withinPeriod = now >= startTime && now <= endTime;
-    bool nonZeroPurchase = msg.value != 0;
-    return withinPeriod && nonZeroPurchase;
+  function withinPeriod() public view returns (bool) {
+    return now >= startTime && now <= endTime;
   }
 
   // @return true if crowdsale event has ended
   function hasEnded() public view returns (bool) {
     return now > endTime;
+  }
+
+  function getNow() public view returns (uint) {
+    return now;
   }
 
   function getTokensLeft() public constant returns (uint) {
