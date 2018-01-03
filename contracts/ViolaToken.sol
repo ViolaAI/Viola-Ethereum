@@ -3,11 +3,11 @@ pragma solidity ^0.4.18;
 import '../node_modules/zeppelin-solidity/contracts/token/StandardToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract ViolaToken is StandardToken, Ownable {
+contract ViolaToken is StandardToken {
     string public constant name = "ViolaToken";
     string public constant symbol = "VIOLA";
     uint8 public constant decimals = 18;
-    uint256 public constant INITIAL_SUPPLY = 10000 * (10 ** uint256(decimals));
+    uint256 public constant INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));
 
   function ViolaToken() public 
   {
