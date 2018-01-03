@@ -4,13 +4,12 @@ import '../node_modules/zeppelin-solidity/contracts/token/StandardToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract ViolaToken is StandardToken, Ownable {
-    uint256 public cap;
     string public constant name = "ViolaToken";
     string public constant symbol = "VIOLA";
     uint8 public constant decimals = 18;
     uint256 public constant INITIAL_SUPPLY = 10000 * (10 ** uint256(decimals));
 
-  function ViolaToken(uint256 _cap) public 
+  function ViolaToken() public 
   {
     totalSupply = INITIAL_SUPPLY;
     balances[msg.sender] = INITIAL_SUPPLY;
