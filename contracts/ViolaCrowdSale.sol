@@ -184,11 +184,11 @@ contract ViolaCrowdsale is Ownable {
         
         uint tokensToAllocate = tokens.add(bonusTokens);
         
-        require(getTokensLeft() > tokensToAllocate);
+        require(getTokensLeft() >= tokensToAllocate);
         totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
 
-        tokensAllocated[investor] = tokens;
-        bonusTokensAllocated[investor] = bonusTokens;
+        tokensAllocated[investor] += tokens;
+        bonusTokensAllocated[investor] += bonusTokens;
 
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
@@ -232,12 +232,12 @@ contract ViolaCrowdsale is Ownable {
 
       uint256 tokensToAllocate = _amount.add(_bonusAmount);
 
-      require(getTokensLeft() > tokensToAllocate);
+      require(getTokensLeft() >= tokensToAllocate);
       totalTokensAllocated = totalTokensAllocated.add(_amount);
       totalReservedTokenAllocated = totalReservedTokenAllocated.add(tokensToAllocate);
 
-      tokensAllocated[_investor] = _amount;
-      bonusTokensAllocated[_investor] = _bonusAmount;
+      tokensAllocated[_investor] += _amount;
+      bonusTokensAllocated[_investor] += _bonusAmount;
       
       //Add event here
 
@@ -246,7 +246,7 @@ contract ViolaCrowdsale is Ownable {
     //For owner to reserve token for misc
     function reserveTokens(uint _amount) onlyOwner external {
 
-      require(getTokensLeft() > _amount);
+      require(getTokensLeft() >= _amount);
       totalTokensAllocated = totalTokensAllocated.add(_amount);
       totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
 
