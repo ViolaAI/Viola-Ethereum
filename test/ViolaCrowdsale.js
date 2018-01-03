@@ -1,4 +1,4 @@
-
+import increaseTime from './helper/increaseTime'
 // Contract to be tested
 const ViolaCrowdSale = artifacts.require('ViolaCrowdsale')
 const ViolaToken = artifacts.require('ViolaToken')
@@ -125,4 +125,54 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setWhitelistAddress(0x0, 2000).should.be.rejectedWith('revert')
         })
     })
+
+    describe('bonus rate', function(){
+        beforeEach(async function() {
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+        })
+        it('at the beginning of Day 1 should be 30', async function(){
+            await increaseTime(10) //after 10 second
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(30))
+        })
+
+        it('at the end of Day 2 should be 30', async function(){
+            await increaseTime(86400 * 2 -1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(30))
+        })
+
+        it('at the beginning of Day 3 should be 15', async function(){
+            await increaseTime(86400 * 2 + 1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(15))
+        })
+
+        it('at the end of Day 10 should be 15', async function(){
+            await increaseTime(86400 * 10 - 1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(15))
+        })
+        
+        it('at the beginning of Day 11 should be 8', async function(){
+            await increaseTime(86400 * 10 + 1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
+        })
+
+        it('at the end should be 8', async function(){
+            await increaseTime(86400 * 20 - 1) // End after 20 days
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
+        })
+
+        it('after ending of ICO should be 0', async function(){
+            await increaseTime(86400 * 20 + 1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(0))
+        })
+
+    })
+
 })
