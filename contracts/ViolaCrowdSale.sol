@@ -35,12 +35,15 @@ contract ViolaCrowdsale is Ownable {
   //Total bonus violaToken an address is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
 
-  // start and end timestamps where investments are allowed (both inclusive)
+  //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
 
-  // address where funds are collected
+  //Address where funds are collected
   address public wallet;
+
+  //Min amount investor can purchase
+  uint256 public minWeiToPurchase;
 
   // how many token units a buyer gets per eth
   uint256 public rate;
@@ -60,6 +63,11 @@ contract ViolaCrowdsale is Ownable {
   //Total amount of tokens reserved from external sources
   //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
+
+  uint256 public leftoverTokensBuffer;
+
+  // when to refresh cap
+  uint public capRefreshPeriod = 86400;
 
   /**
    * event for token purchase logging
@@ -97,7 +105,7 @@ contract ViolaCrowdsale is Ownable {
     CrowdsalePending();
   }
 
-  // Crowdsale lifecycle
+  // To be called by Ethereum alarm clock
   function startCrowdSale() external {
     require(withinPeriod());
     require(violaToken != address(0));
@@ -108,19 +116,25 @@ contract ViolaCrowdsale is Ownable {
     CrowdsaleStarted();
   }
 
-  function endCrowdSale() onlyOwner external {
+  //To be called by owner or contract
+  //Ends the crowdsale when tokens are sold out
+  function endCrowdSale() public {
+    if (!tokensHasSoldOut()) {
+      require(msg.sender == owner);
+    }
     require(status == State.Active);
 
     status = State.Ended;
 
+    CrowdsaleEnded();
   }
-
+  //Emergency pause
   function pauseCrowdSale() onlyOwner external {
     require(status == State.Active);
 
     status = State.Paused;
   }
-
+  //Resume paused crowdsale
   function unpauseCrowdSale() onlyOwner external {
     require(status == State.Paused);
 
@@ -175,6 +189,10 @@ contract ViolaCrowdsale is Ownable {
     rate = _rate;
   }
 
+  function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
+    minWeiToPurchase = _minWeiToPurchase;
+  }
+  
   // Called when ether is sent to contract
   function () external payable {
     buyTokens(msg.sender);
@@ -184,7 +202,7 @@ contract ViolaCrowdsale is Ownable {
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
     require(status == State.Active);
-    require(msg.value > 0);
+    require(msg.value > minWeiToPurchase);
 
     uint weiAmount = msg.value;
 
@@ -242,8 +260,19 @@ contract ViolaCrowdsale is Ownable {
         tokensAllocated[investor] += tokens;
         bonusTokensAllocated[investor] += bonusTokens;
 
+        if (tokensHasSoldOut()) {
+          endCrowdSale();
+        }
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
+  //Checks if token has been sold out
+    function tokensHasSoldOut() view internal returns (bool) {
+      if (getTokensLeft() <= leftoverTokensBuffer) {
+        return true;
+      } else {
+        return false;
+      }
+    }
 
   //Used by investor to claim token
     function claimTokens() external {
