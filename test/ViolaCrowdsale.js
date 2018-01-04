@@ -11,8 +11,8 @@ const should = require('chai')
 .should()
 
 const State = {
-    Preparing : 0,
-    NotStarted : 1,
+    Deployed : 0,
+    PendingStart: 1,
     Active : 2,
     Paused : 3,
     Ended : 4,
@@ -30,75 +30,65 @@ contract('ViolaCrowdsale', function (accounts) {
         const rate = new web3.BigNumber(1)
         const wallet = accounts[0]
 
+        this.violaTokenInstance = await ViolaToken.new();        
         this.violaCrowdSaleInstance = await ViolaCrowdSale.new();
-        await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, rate, wallet);
-        this.violaTokenInstance = await ViolaToken.new();
+        await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})            
+        await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, rate, this.violaTokenInstance.address, wallet);
     })
 
     describe('initializing contract', function () {
-        it('should initialize with Preparing status', async function () {
+        it('should initialize with PendingStart status', async function () {
             let state = await this.violaCrowdSaleInstance.status.call();
-            state.should.be.bignumber.equal(new BigNumber(State.Preparing))
-        })
-    })
-
-    describe('setting token address', function () {
-        it('should accept token address', async function () {
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-            let token = await this.violaCrowdSaleInstance.myToken.call()
-            token.should.equal(token)
-        })
-
-        it('should not accept null token address', async function () {
-            await this.violaCrowdSaleInstance.setToken(0).should.be.rejectedWith('revert')
-        })
-
-        it('should go to NotStarted state after accepting token', async function () {
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-            let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(State.NotStarted))
-        })
-
-        it('should accept token only in Preparing status', async function () {
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-            //status is now NotStarted
-            await this.violaCrowdSaleInstance.setToken(this.violaCrowdSaleInstance.address).should.be.rejectedWith('revert')
+            state.should.be.bignumber.equal(new BigNumber(State.PendingStart))
         })
     })
 
     describe('starting crowdsale', function () {
-        it('should not start crowdsale in Preparing status', async function () {
-            await this.violaCrowdSaleInstance.startCrowdSale().should.be.rejectedWith('revert')
+        it('should start crowdsale from PendingStart status', async function () {
+            await increaseTime(10)             
+            await this.violaCrowdSaleInstance.startCrowdSale()
         })
 
-        it('should start crowdsale', async function () {
+        it('should not start crowdsale in Active status', async function () {
             await increaseTime(10) 
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)            
             await this.violaCrowdSaleInstance.startCrowdSale()
-            let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(State.Active))
+            await this.violaCrowdSaleInstance.startCrowdSale().should.be.rejectedWith('revert')
         })
     })
 
     describe('ending crowdsale', function () {
-        beforeEach(async function() {
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-        })
-
-        it('should end crowdsale from Active status', async function() {
+        it('should end crowdsale from Active status', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
             state.should.be.bignumber.equal(new BigNumber(State.Ended))
         })
+
+        it('should not end crowdsale from Paused status', async function () {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.pauseCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale().should.be.rejectedWith('revert')
+        })
+
+        it('should not end crowdsale from Ended status', async function () {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale().should.be.rejectedWith('revert')
+        })
+
+        it('should not end crowdsale from Completed status', async function () {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.completeCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale().should.be.rejectedWith('revert')
+        })
     })
 
     describe('pausing crowdsale', function () {
-        beforeEach(async function () {
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-        })
-
         it('should pause crowdsale from Active status', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
@@ -115,13 +105,29 @@ contract('ViolaCrowdsale', function (accounts) {
             let state = await this.violaCrowdSaleInstance.status.call()
             state.should.be.bignumber.equal(new BigNumber(State.Active))
         })
+    })
 
-        it('should stop crowdsale from Active status', async function () {
-            await increaseTime(10)
+    describe('completing crowdsale', function () {
+        it('should complete crowdsale from Ended status', async function () {
+            await increaseTime(10)            
             await this.violaCrowdSaleInstance.startCrowdSale()
-            await this.violaCrowdSaleInstance.stopCrowdSale()
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.completeCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
             state.should.be.bignumber.equal(new BigNumber(State.Completed))
+        })
+
+        it('should transfer funds when crowdsale ended', async function () {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            let initialAmount = web3.eth.getBalance(this.violaCrowdSaleInstance.address)
+            await this.violaCrowdSaleInstance.completeCrowdSale()
+            let finalAmount = web3.eth.getBalance(this.violaCrowdSaleInstance.address)
+            let diff = initialAmount.minus(finalAmount)
+            diff.should.be.bignumber.equal(web3.toWei('1', 'ether'))
         })
     })
 

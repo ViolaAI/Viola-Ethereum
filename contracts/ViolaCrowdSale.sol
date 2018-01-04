@@ -15,7 +15,7 @@ import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 contract ViolaCrowdsale is Ownable {
   using SafeMath for uint256;
 
-  enum State { Deployed, Preparing , PendingStart, Active, Paused, Ended, Completed }
+  enum State { Deployed, PendingStart, Active, Paused, Ended, Completed }
 
   //Status of contract
   State public status = State.Deployed;
@@ -61,9 +61,6 @@ contract ViolaCrowdsale is Ownable {
   //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
 
-  // when to refresh cap
-  uint public capRefreshPeriod = 86400;
-
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -98,11 +95,10 @@ contract ViolaCrowdsale is Ownable {
     status = State.PendingStart;
 
     CrowdsalePending();
-
   }
 
   // Crowdsale lifecycle
-  function startCrowdSale() onlyOwner external {
+  function startCrowdSale() external {
     require(withinPeriod());
     require(violaToken != address(0));
     require(status == State.PendingStart);
@@ -131,8 +127,8 @@ contract ViolaCrowdsale is Ownable {
     status = State.Active;
   }
 
-  function stopCrowdSale() onlyOwner external {
-    require(status == State.Active);
+  function completeCrowdSale() onlyOwner external {
+    require(status == State.Ended);
 
     status = State.Completed;
 
