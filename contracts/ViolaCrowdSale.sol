@@ -150,7 +150,7 @@ contract ViolaCrowdsale is Ownable {
     }
   }
 
-  function getAddressCap( address _user ) constant public returns(uint) {
+  function getAddressCap( address _user ) view public returns(uint) {
         uint cap = maxBuyCap[_user];
         if (cap > 0) {
           return cap;
@@ -312,7 +312,7 @@ contract ViolaCrowdsale is Ownable {
     return now;
   }
 
-  function getTokensLeft() public constant returns (uint) {
+  function getTokensLeft() public view returns (uint) {
     return myToken.allowance(owner, this).sub(totalTokensAllocated);
   }
 
@@ -320,15 +320,15 @@ contract ViolaCrowdsale is Ownable {
      require(myToken.transferFrom(owner, receiver, tokenAmount));
   }
 
-  function getAddressAllocatedTokens(address investor) public constant returns(uint) {
+  function getAddressAllocatedTokens(address investor) public view returns(uint) {
     return tokensAllocated[investor];
   }
 
-  function getAddressBonusAllocatedTokens(address investor) public constant returns(uint) {
+  function getAddressBonusAllocatedTokens(address investor) public view returns(uint) {
     return bonusTokensAllocated[investor];
   }
 
-  function getAddressAmtInvested(address investor) public constant returns(uint) {
+  function getAddressAmtInvested(address investor) public view returns(uint) {
     return investedSum[investor];
   }
 
