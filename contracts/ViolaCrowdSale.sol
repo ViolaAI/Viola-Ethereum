@@ -280,16 +280,6 @@ contract ViolaCrowdsale is Ownable {
 
     }
 
-    //For owner to reserve token for misc
-    function reserveTokens(uint _amount) onlyOwner external {
-
-      require(getTokensLeft() >= _amount);
-      totalTokensAllocated = totalTokensAllocated.add(_amount);
-      totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
-
-      //Add event here
-    }
-
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
