@@ -11,8 +11,7 @@ module.exports = {
     development: {
       host: "localhost",
       port: 8545,
-      network_id: "1",
-      gas: 2000000
+      network_id: "1"
      },
      rinkeby: {
       provider: new HDWalletProvider(mnemonic, "https://rinkeby.infura.io/"+infura_apikey),

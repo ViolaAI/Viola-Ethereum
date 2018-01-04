@@ -65,6 +65,7 @@ contract ViolaCrowdsale is Ownable {
    * @param bonusAmount bonus amount of token allocated
    */
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
+  event Refunded(address indexed beneficiary, uint256 weiAmount);
 
 
   function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) onlyOwner external {
@@ -94,6 +95,9 @@ contract ViolaCrowdsale is Ownable {
     require(status == State.Active);
 
     status = State.Ended;
+
+    forwardFunds();
+
   }
 
   function pauseCrowdSale() onlyOwner external {
@@ -166,8 +170,26 @@ contract ViolaCrowdsale is Ownable {
 
     // update state
     weiRaised = weiRaised.add(weiAmount);
+  }
 
-    forwardFunds();
+  function refund(address _investor) onlyOwner external {
+    require(_investor != address(0));
+    
+    uint256 weiAmount = investedSum[_investor];
+    require(weiAmount > 0);
+
+    uint256 investorTokens = tokensAllocated[_investor];
+    investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
+
+    totalTokensAllocated = totalTokensAllocated.add(investorTokens);
+    tokensAllocated[_investor] = 0;
+    bonusTokensAllocated[_investor] = 0;
+    investedSum[_investor] = 0;
+    weiRaised = weiRaised.sub(weiAmount);
+
+    _investor.transfer(weiAmount);
+
+    Refunded(_investor, weiAmount);
   }
 
   function checkCapAndRecord(address investor, uint weiAmount) internal {
@@ -257,7 +279,7 @@ contract ViolaCrowdsale is Ownable {
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
   function forwardFunds() internal {
-    wallet.transfer(msg.value);
+    wallet.transfer(weiRaised);
   }
 
   // @return true if the transaction can buy tokens
