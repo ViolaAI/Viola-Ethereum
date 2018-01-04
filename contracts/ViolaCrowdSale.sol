@@ -61,6 +61,8 @@ contract ViolaCrowdsale is Ownable {
   //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
 
+  uint256 public leftoverTokensBuffer;
+
   // when to refresh cap
   uint public capRefreshPeriod = 86400;
 
@@ -101,8 +103,8 @@ contract ViolaCrowdsale is Ownable {
 
   }
 
-  // Crowdsale lifecycle
-  function startCrowdSale() onlyOwner external {
+  // To be called by Ethereum alarm clock
+  function startCrowdSale() external {
     require(withinPeriod());
     require(violaToken != address(0));
     require(status == State.PendingStart);
@@ -112,25 +114,31 @@ contract ViolaCrowdsale is Ownable {
     CrowdsaleStarted();
   }
 
-  function endCrowdSale() onlyOwner external {
+  //To be called by owner or contract
+  //Ends the crowdsale when tokens are sold out
+  function endCrowdSale() public {
+    if (!tokensHasSoldOut()) {
+      require(msg.sender == owner);
+    }
     require(status == State.Active);
 
     status = State.Ended;
 
+    CrowdsaleEnded();
   }
-
+  //Emergency pause
   function pauseCrowdSale() onlyOwner external {
     require(status == State.Active);
 
     status = State.Paused;
   }
-
+  //Resume paused crowdsale
   function unpauseCrowdSale() onlyOwner external {
     require(status == State.Paused);
 
     status = State.Active;
   }
-
+  //Stop crowdsale functions when completed and forward funds
   function stopCrowdSale() onlyOwner external {
     require(status == State.Active);
 
@@ -246,8 +254,19 @@ contract ViolaCrowdsale is Ownable {
         tokensAllocated[investor] += tokens;
         bonusTokensAllocated[investor] += bonusTokens;
 
+        if (tokensHasSoldOut()) {
+          endCrowdSale();
+        }
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
+  //Checks if token has been sold out
+    function tokensHasSoldOut() view internal returns (bool) {
+      if (getTokensLeft() <= leftoverTokensBuffer) {
+        return true;
+      } else {
+        return false;
+      }
+    }
 
   //Used by investor to claim token
     function claimTokens() external {
