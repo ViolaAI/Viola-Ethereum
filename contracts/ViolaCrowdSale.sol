@@ -35,12 +35,15 @@ contract ViolaCrowdsale is Ownable {
   //Total bonus violaToken an address is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
 
-  // start and end timestamps where investments are allowed (both inclusive)
+  //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
 
-  // address where funds are collected
+  //Address where funds are collected
   address public wallet;
+
+  //Min amount investor can purchase
+  uint256 public minWeiToPurchase;
 
   // how many token units a buyer gets per eth
   uint256 public rate;
@@ -187,6 +190,10 @@ contract ViolaCrowdsale is Ownable {
     rate = _rate;
   }
 
+  function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
+    minWeiToPurchase = _minWeiToPurchase;
+  }
+  
   // Called when ether is sent to contract
   function () external payable {
     buyTokens(msg.sender);
@@ -196,7 +203,7 @@ contract ViolaCrowdsale is Ownable {
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
     require(status == State.Active);
-    require(msg.value > 0);
+    require(msg.value > minWeiToPurchase);
 
     uint weiAmount = msg.value;
 
