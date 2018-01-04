@@ -10,6 +10,15 @@ const should = require('chai')
 .use(require('chai-bignumber')(BigNumber))
 .should()
 
+const State = {
+    Preparing : 0,
+    NotStarted : 1,
+    Active : 2,
+    Paused : 3,
+    Ended : 4,
+    Completed : 5
+}
+
 // Test suite
 contract('ViolaCrowdsale', function (accounts) {
 
@@ -29,7 +38,7 @@ contract('ViolaCrowdsale', function (accounts) {
     describe('initializing contract', function () {
         it('should initialize with Preparing status', async function () {
             let state = await this.violaCrowdSaleInstance.status.call();
-            state.should.be.bignumber.equal(new BigNumber(0))
+            state.should.be.bignumber.equal(new BigNumber(State.Preparing))
         })
     })
 
@@ -47,7 +56,7 @@ contract('ViolaCrowdsale', function (accounts) {
         it('should go to NotStarted state after accepting token', async function () {
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(1))
+            state.should.be.bignumber.equal(new BigNumber(State.NotStarted))
         })
 
         it('should accept token only in Preparing status', async function () {
@@ -67,7 +76,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)            
             await this.violaCrowdSaleInstance.startCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(2))
+            state.should.be.bignumber.equal(new BigNumber(State.Active))
         })
     })
 
@@ -81,7 +90,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(4))
+            state.should.be.bignumber.equal(new BigNumber(State.Ended))
         })
     })
 
@@ -95,7 +104,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.pauseCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(3))
+            state.should.be.bignumber.equal(new BigNumber(State.Paused))
         })
 
         it('should unpause crowdsale from Paused status', async function () {
@@ -104,7 +113,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.pauseCrowdSale()
             await this.violaCrowdSaleInstance.unpauseCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(2))
+            state.should.be.bignumber.equal(new BigNumber(State.Active))
         })
 
         it('should stop crowdsale from Active status', async function () {
@@ -112,7 +121,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.stopCrowdSale()
             let state = await this.violaCrowdSaleInstance.status.call()
-            state.should.be.bignumber.equal(new BigNumber(5))
+            state.should.be.bignumber.equal(new BigNumber(State.Completed))
         })
     })
 
@@ -259,23 +268,27 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should not buy when contract has ended', async function() {
-
+            assert.fail('not implemented')
         })
 
         it('should not buy when contract is paused', async function () {
-
+            assert.fail('not implemented')
+            
         })
 
         it('should not buy when insufficient token', async function () {
-
+            assert.fail('not implemented')
+            
         })
 
         it('should not buy when cap is reached', async function() {
-
+            assert.fail('not implemented')
+            
         })
 
         it('should not buy using fiat when cap reached', async function () {
-
+            assert.fail('not implemented')
+            
         })
     })
 
