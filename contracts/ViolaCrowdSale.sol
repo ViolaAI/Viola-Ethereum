@@ -15,7 +15,7 @@ import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 contract ViolaCrowdsale is Ownable {
   using SafeMath for uint256;
 
-  enum State { Preparing, NotStarted, Active, Paused, Ended, Stopped }
+  enum State { Preparing, NotStarted, Active, Paused, Ended, Completed }
 
   //Status of contract
   State public status;
@@ -96,8 +96,6 @@ contract ViolaCrowdsale is Ownable {
 
     status = State.Ended;
 
-    forwardFunds();
-
   }
 
   function pauseCrowdSale() onlyOwner external {
@@ -115,7 +113,9 @@ contract ViolaCrowdsale is Ownable {
   function stopCrowdSale() onlyOwner external {
     require(status == State.Active);
 
-    status = State.Stopped;
+    status = State.Completed;
+
+    forwardFunds();
   }
 
   function setToken(address _tokenAddress) onlyOwner external {
@@ -178,10 +178,13 @@ contract ViolaCrowdsale is Ownable {
     uint256 weiAmount = investedSum[_investor];
     require(weiAmount > 0);
 
-    uint256 investorTokens = tokensAllocated[_investor];
-    investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
+    if (status == State.Active) {
+      uint256 investorTokens = tokensAllocated[_investor];
+      investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
 
-    totalTokensAllocated = totalTokensAllocated.add(investorTokens);
+      totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
+    }
+
     tokensAllocated[_investor] = 0;
     bonusTokensAllocated[_investor] = 0;
     investedSum[_investor] = 0;
@@ -241,6 +244,17 @@ contract ViolaCrowdsale is Ownable {
 
     }
 
+
+    //For owner to reserve token for misc
+    function reserveTokens(uint _amount) onlyOwner external {
+
+      require(getTokensLeft() >= _amount);
+      totalTokensAllocated = totalTokensAllocated.add(_amount);
+      totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
+
+      //Add event here
+    }
+
     function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
       require(status == State.Ended);
 
@@ -249,6 +263,7 @@ contract ViolaCrowdsale is Ownable {
       //Add event here
 
     }
+
     //For external purchases via btc/fiat
     function externalPurchaseTokens(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
 
