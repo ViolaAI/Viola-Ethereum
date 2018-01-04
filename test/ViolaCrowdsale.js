@@ -315,4 +315,35 @@ contract('ViolaCrowdsale', function (accounts) {
             diffBalance.should.be.bignumber.equal(amountInvested)
         })
     })
+    
+    describe('allocate Tokens', function() {
+        let buyAmount = 1;
+        beforeEach(async function() {
+            await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+        })
+
+        it('buyer should receive 30% bonus tokens within 2 first days', async function() {
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            let bonusToken = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.3, 'ether'))
+        })
+
+        it('buyer should receive 15% bonus tokens from Day 3', async function() {
+            await increaseTime(86400 * 2 + 1)
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            let bonusToken = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15, 'ether'))
+        })
+
+        it('buyer should receive 15% bonus tokens from Day 11', async function() {
+            await increaseTime(86400 * 10 + 1)
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            let bonusToken = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08, 'ether'))
+        })
+    })
 })
