@@ -139,6 +139,17 @@ contract ViolaCrowdsale is Ownable {
         //add event
     }
 
+  function removeWhitelistAddress(address _investor) onlyOwner external {
+    require(_investor != address(0));
+    
+    maxBuyCap[_investor] = 0;
+    uint256 weiAmount = investedSum[_investor];
+
+    if (weiAmount > 0) {
+      refund(_investor);
+    }
+  }
+
   function getAddressCap( address _user ) constant public returns(uint) {
         uint cap = maxBuyCap[_user];
         if (cap > 0) {
@@ -172,7 +183,7 @@ contract ViolaCrowdsale is Ownable {
     weiRaised = weiRaised.add(weiAmount);
   }
 
-  function refund(address _investor) onlyOwner external {
+  function refund(address _investor) onlyOwner public {
     require(_investor != address(0));
     
     uint256 weiAmount = investedSum[_investor];

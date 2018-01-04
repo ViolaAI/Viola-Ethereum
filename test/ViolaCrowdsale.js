@@ -131,6 +131,32 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setWhitelistAddress(0x0, 2000).should.be.rejectedWith('revert')
         })
     })
+
+    describe('removing whitelist address', function () {
+        it('should remove whitelist address', async function() {
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.removeWhitelistAddress(accounts[1])
+            let cap = await this.violaCrowdSaleInstance.getAddressCap(accounts[1])
+            cap.should.be.bignumber.equal(new BigNumber(0))
+        })
+
+        it('should refund after removal', async function () {
+            await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})            
+            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
+            let amountInvested = await this.violaCrowdSaleInstance.getAddressAmtInvested(accounts[1])
+            let beforeFund = web3.eth.getBalance(accounts[1])  
+
+            await this.violaCrowdSaleInstance.removeWhitelistAddress(accounts[1])
+            
+            let afterFund = web3.eth.getBalance(accounts[1])
+            let diffBalance = afterFund.minus(beforeFund)
+            diffBalance.should.be.bignumber.equal(amountInvested)
+        })
+    })
   
     describe('bonus rate', function(){
         beforeEach(async function() {
@@ -226,6 +252,30 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
             let tokens = await this.violaCrowdSaleInstance.getAddressAllocatedTokens(accounts[1])
             tokens.should.be.bignumber.equal(web3.toWei('1', 'ether'))          
+        })
+
+        it('non-whitelisted investor should not be able to buy tokens', async function() {
+            await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('1', 'ether')}).should.be.rejectedWith('revert')
+        })
+
+        it('should not buy when contract has ended', async function() {
+
+        })
+
+        it('should not buy when contract is paused', async function () {
+
+        })
+
+        it('should not buy when insufficient token', async function () {
+
+        })
+
+        it('should not buy when cap is reached', async function() {
+
+        })
+
+        it('should not buy using fiat when cap reached', async function () {
+
         })
     })
 
