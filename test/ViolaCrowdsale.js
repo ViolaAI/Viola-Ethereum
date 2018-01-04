@@ -147,7 +147,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe('removing whitelist address', function () {
+    describe.only('removing whitelist address', function () {
         it('should remove whitelist address', async function() {
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
             await this.violaCrowdSaleInstance.removeWhitelistAddress(accounts[1])
@@ -156,10 +156,6 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('should refund after removal', async function () {
-            await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})            
-            await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
-            await increaseTime(10)
-            await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
             await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
             let amountInvested = await this.violaCrowdSaleInstance.getAddressAmtInvested(accounts[1])
