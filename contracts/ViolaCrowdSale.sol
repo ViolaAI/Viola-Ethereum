@@ -93,6 +93,7 @@ contract ViolaCrowdsale is Ownable {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
+    require(_bonusRate > 0);
     require(address(_tokenAddress) != address(0));
     require(_wallet != address(0));
 
@@ -293,6 +294,7 @@ contract ViolaCrowdsale is Ownable {
 
     }
 
+    //Used by investor to claim bonus token
     function claimBonusToken() external {
       require(status == State.Ended);
       require(now >= startTime + bonusVestingPeriod);
@@ -308,6 +310,7 @@ contract ViolaCrowdsale is Ownable {
       BonusTokenDistributed(tokenReceiver, tokensToClaim);
     }
 
+    //Used by owner to distribute bonus token
     function distributeBonusTokens(address _tokenReceiver) onlyOwner external {
       require(status == State.Ended);
       require(now >= startTime + bonusVestingPeriod);
