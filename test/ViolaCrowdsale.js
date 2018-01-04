@@ -229,17 +229,13 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe.only('refunding', function () {
+    describe('refunding', function () {
         beforeEach(async function() {
             await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('100', 'ether'), {from: accounts[0]})
             await this.violaCrowdSaleInstance.setToken(this.violaTokenInstance.address)
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
-        })
-
-        it('investor should get ether', async function () {
-            await this.violaCrowdSaleInstance.testTransfer(accounts[1], web3.toWei('1', 'ether'), {from: accounts[0]})
         })
     })
 })
