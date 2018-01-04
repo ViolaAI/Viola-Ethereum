@@ -38,6 +38,7 @@ contract ViolaCrowdsale is Ownable {
   //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
+  uint256 public bonusVestingPeriod = 180 days;
 
   //Address where funds are collected
   address public wallet;
@@ -78,7 +79,9 @@ contract ViolaCrowdsale is Ownable {
    */
 
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
+  event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
+  event BonusTokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
   event CrowdsalePending();
   event CrowdsaleStarted();
   event CrowdsaleEnded();
@@ -193,7 +196,7 @@ contract ViolaCrowdsale is Ownable {
   function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
     minWeiToPurchase = _minWeiToPurchase;
   }
-  
+
   // Called when ether is sent to contract
   function () external payable {
     buyTokens(msg.sender);
@@ -280,26 +283,61 @@ contract ViolaCrowdsale is Ownable {
       require(status == State.Ended);
 
       address tokenReceiver = msg.sender;
-      uint tokensToClaim = tokensAllocated[msg.sender];
+      uint tokensToClaim = tokensAllocated[tokenReceiver];
+
+      require(tokensToClaim > 0);
       tokensAllocated[tokenReceiver] = 0;
 
       violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
 
-      //Add event here
+      TokenDistributed(tokenReceiver, tokensToClaim);
 
     }
 
-  //Used by owner to distribute token
+    function claimBonusToken() external {
+      require(status == State.Ended);
+      require(now >= startTime + bonusVestingPeriod);
+
+      address tokenReceiver = msg.sender;
+      uint tokensToClaim = bonusTokensAllocated[tokenReceiver];
+
+      require(tokensToClaim > 0);
+      bonusTokensAllocated[tokenReceiver] = 0;
+
+      violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+
+      BonusTokenDistributed(tokenReceiver, tokensToClaim);
+    }
+
+    function distributeBonusTokens(address _tokenReceiver) onlyOwner external {
+      require(status == State.Ended);
+      require(now >= startTime + bonusVestingPeriod);
+
+      address tokenReceiver = _tokenReceiver;
+      uint tokensToClaim = bonusTokensAllocated[tokenReceiver];
+
+      require(tokensToClaim > 0);
+      bonusTokensAllocated[tokenReceiver] = 0;
+
+      transferTokens(tokenReceiver, tokensToClaim);
+
+      BonusTokenDistributed(tokenReceiver,tokensToClaim);
+
+    }
+
+    //Used by owner to distribute token
     function distributeICOTokens(address _tokenReceiver) onlyOwner external {
       require(status == State.Ended);
 
       address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = tokensAllocated[msg.sender];
+      uint tokensToClaim = tokensAllocated[tokenReceiver];
+
+      require(tokensToClaim > 0);
       tokensAllocated[tokenReceiver] = 0;
 
       transferTokens(tokenReceiver, tokensToClaim);
 
-      //Add event here
+      TokenDistributed(tokenReceiver,tokensToClaim);
 
     }
 
@@ -311,22 +349,23 @@ contract ViolaCrowdsale is Ownable {
       totalTokensAllocated = totalTokensAllocated.add(_amount);
       totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
 
-      //Add event here
     }
 
     //To distribute tokens not allocated by crowdsale contract
     function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
       require(status == State.Ended);
+      require(_tokenReceiver != address(0));
+      require(_amount > 0);
 
       violaToken.transferFrom(owner, _tokenReceiver, _amount);
 
-      //Add event here
+      TokenDistributed(_tokenReceiver,_amount);
 
     }
 
     //For external purchases via btc/fiat
     function externalPurchaseTokens(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
-
+      require(_amount > 0);
       uint256 tokensToAllocate = _amount.add(_bonusAmount);
 
       require(getTokensLeft() >= tokensToAllocate);
@@ -336,7 +375,7 @@ contract ViolaCrowdsale is Ownable {
       tokensAllocated[_investor] += _amount;
       bonusTokensAllocated[_investor] += _bonusAmount;
       
-      //Add event here
+      ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
 
     }
 
