@@ -15,21 +15,24 @@ import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 contract ViolaCrowdsale is Ownable {
   using SafeMath for uint256;
 
-  enum State { Preparing, NotStarted, Active, Paused, Ended, Completed }
+  enum State { Deployed, Preparing , PendingStart, Active, Paused, Ended, Completed }
 
   //Status of contract
-  State public status;
+  State public status = State.Deployed;
 
   // The token being sold
-  ERC20 public myToken;
+  ERC20 public violaToken;
 
-  //For whitelisted
+  //For keeping track of whitelist address. cap >0 = whitelisted
   mapping(address=>uint) public maxBuyCap;
 
+  //Total wei sum an address has invested
   mapping(address=>uint) public investedSum;
 
+  //Total violaToken an address is allocated
   mapping(address=>uint) public tokensAllocated;
 
+  //Total bonus violaToken an address is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
 
   // start and end timestamps where investments are allowed (both inclusive)
@@ -42,6 +45,7 @@ contract ViolaCrowdsale is Ownable {
   // how many token units a buyer gets per eth
   uint256 public rate;
 
+  // how many bonus token units a buyer gets per eth
   uint public bonusTokenRate;
 
   //Extra bonus token to give *per ETH*
@@ -50,8 +54,11 @@ contract ViolaCrowdsale is Ownable {
   // amount of raised money in wei
   uint256 public weiRaised;
 
+  //Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
 
+  //Total amount of tokens reserved from external sources
+  //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
 
   // when to refresh cap
@@ -64,31 +71,45 @@ contract ViolaCrowdsale is Ownable {
    * @param amount amount of tokens purchased
    * @param bonusAmount bonus amount of token allocated
    */
+
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
+  event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
+  event CrowdsalePending();
+  event CrowdsaleStarted();
+  event CrowdsaleEnded();
+  event BonusRateChanged();
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
-
-  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _wallet) onlyOwner external {
+  //Set inital arguments of the crowdsale
+  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _tokenAddress, address _wallet) onlyOwner external {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
+    require(address(_tokenAddress) != address(0));
     require(_wallet != address(0));
 
     startTime = _startTime;
     endTime = _endTime;
     rate = _rate;
     wallet = _wallet;
-    status = State.Preparing;
     bonusTokenRate = _bonusRate;
+    violaToken = ERC20(_tokenAddress);
+
+    status = State.PendingStart;
+
+    CrowdsalePending();
+
   }
 
   // Crowdsale lifecycle
   function startCrowdSale() onlyOwner external {
     require(withinPeriod());
-    require(myToken != address(0));
-    require(status == State.NotStarted);
+    require(violaToken != address(0));
+    require(status == State.PendingStart);
 
     status = State.Active;
+
+    CrowdsaleStarted();
   }
 
   function endCrowdSale() onlyOwner external {
@@ -118,20 +139,13 @@ contract ViolaCrowdsale is Ownable {
     forwardFunds();
   }
 
-  function setToken(address _tokenAddress) onlyOwner external {
-    require(status == State.Preparing);
-    require(address(_tokenAddress) != address(0));
-        
-    myToken = ERC20(_tokenAddress);
-
-    status = State.NotStarted;
-  }
-
+  //Set the number of bonus token per ether
   function setBonusRate(uint _bonusRate) onlyOwner external {
-    require(_bonusRate > 0);  
+    require(_bonusRate > 0);
     bonusTokenRate = _bonusRate;
     }
 
+  //Add the address to whitelist
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
         require(_cap > 0);
         require(_investor != address(0));
@@ -139,6 +153,7 @@ contract ViolaCrowdsale is Ownable {
         //add event
     }
 
+  //Remove the address from whitelist
   function removeWhitelistAddress(address _investor) onlyOwner external {
     require(_investor != address(0));
     
@@ -150,6 +165,7 @@ contract ViolaCrowdsale is Ownable {
     }
   }
 
+  //Get max wei an address can buy up to
   function getAddressCap( address _user ) view public returns(uint) {
         uint cap = maxBuyCap[_user];
         if (cap > 0) {
@@ -157,17 +173,18 @@ contract ViolaCrowdsale is Ownable {
         }
   }
 
+  //Set the ether to token rate
   function setRate(uint _rate) onlyOwner external {
     require(_rate > 0);
     rate = _rate;
   }
 
-  // fallback function can be used to buy tokens
+  // Called when ether is sent to contract
   function () external payable {
     buyTokens(msg.sender);
   }
 
-  // low level token purchase function
+  //Used to buy tokens
   function buyTokens(address investor) public payable {
     //require(tx.gasprice <= 50000000 wei);
     require(status == State.Active);
@@ -183,6 +200,7 @@ contract ViolaCrowdsale is Ownable {
     weiRaised = weiRaised.add(weiAmount);
   }
 
+  //Refund users in case of unsuccessful crowdsale
   function refund(address _investor) onlyOwner public {
     require(_investor != address(0));
     
@@ -206,6 +224,7 @@ contract ViolaCrowdsale is Ownable {
     Refunded(_investor, weiAmount);
   }
 
+  //Internal call to check max user cap
   function checkCapAndRecord(address investor, uint weiAmount) internal {
       uint remaindingCap = maxBuyCap[investor];
       require(remaindingCap > weiAmount);
@@ -213,6 +232,7 @@ contract ViolaCrowdsale is Ownable {
       investedSum[investor] = investedSum[investor].add(weiAmount);
   }
 
+  //Internal call to allocated tokens purchased
     function allocateToken(address investor, uint weiAmount) internal {
         // calculate token amount to be created
         uint tokens = weiAmount.mul(rate);
@@ -229,6 +249,7 @@ contract ViolaCrowdsale is Ownable {
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
 
+  //Used by investor to claim token
     function claimTokens() external {
       require(status == State.Ended);
 
@@ -236,12 +257,13 @@ contract ViolaCrowdsale is Ownable {
       uint tokensToClaim = tokensAllocated[msg.sender];
       tokensAllocated[tokenReceiver] = 0;
 
-      myToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+      violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
 
       //Add event here
 
     }
 
+  //Used by owner to distribute token
     function distributeICOTokens(address _tokenReceiver) onlyOwner external {
       require(status == State.Ended);
 
@@ -249,14 +271,14 @@ contract ViolaCrowdsale is Ownable {
       uint tokensToClaim = tokensAllocated[msg.sender];
       tokensAllocated[tokenReceiver] = 0;
 
-      myToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+      transferTokens(tokenReceiver, tokensToClaim);
 
       //Add event here
 
     }
 
 
-    //For owner to reserve token for misc
+    //For owner to reserve token for presale
     function reserveTokens(uint _amount) onlyOwner external {
 
       require(getTokensLeft() >= _amount);
@@ -266,10 +288,11 @@ contract ViolaCrowdsale is Ownable {
       //Add event here
     }
 
+    //To distribute tokens not allocated by crowdsale contract
     function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
       require(status == State.Ended);
 
-      myToken.transferFrom(owner, _tokenReceiver, _amount);
+      violaToken.transferFrom(owner, _tokenReceiver, _amount);
 
       //Add event here
 
@@ -308,16 +331,12 @@ contract ViolaCrowdsale is Ownable {
     return now > endTime;
   }
 
-  function getNow() public view returns (uint) {
-    return now;
-  }
-
   function getTokensLeft() public view returns (uint) {
-    return myToken.allowance(owner, this).sub(totalTokensAllocated);
+    return violaToken.allowance(owner, this).sub(totalTokensAllocated);
   }
 
-  function assignTokens(address receiver, uint tokenAmount) internal {
-     require(myToken.transferFrom(owner, receiver, tokenAmount));
+  function transferTokens (address receiver, uint tokenAmount) internal {
+     require(violaToken.transferFrom(owner, receiver, tokenAmount));
   }
 
   function getAddressAllocatedTokens(address investor) public view returns(uint) {
