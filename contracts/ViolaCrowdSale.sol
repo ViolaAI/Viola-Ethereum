@@ -254,7 +254,7 @@ contract ViolaCrowdsale is Ownable {
     function allocateToken(address investor, uint weiAmount) internal {
         // calculate token amount to be created
         uint tokens = weiAmount.mul(rate);
-        uint bonusTokens = weiAmount.mul(getTimeBasedBonusRate());
+        uint bonusTokens = weiAmount.div(100).mul(getTimeBasedBonusRate());
         
         uint tokensToAllocate = tokens.add(bonusTokens);
         
@@ -434,4 +434,5 @@ contract ViolaCrowdsale is Ownable {
       return 0;
     }
   }
+
 }
