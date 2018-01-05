@@ -380,7 +380,7 @@ contract('ViolaCrowdsale', function (accounts) {
             diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
         })
 
-        it('should distrubte bonus tokens', async function () {
+        it('should distribute bonus tokens', async function () {
             await increaseTime(day * 180)
             let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             let bonusAllocated = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])            
@@ -393,6 +393,14 @@ contract('ViolaCrowdsale', function (accounts) {
         it('should not distrubte bonus tokens before vesting period', async function () {
             await increaseTime(day * 20)         
             await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[1]).should.be.rejectedWith('revert')
+        })
+
+        it('should distribute presale tokens', async function () {
+            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            await this.violaCrowdSaleInstance.distributePresaleTokens(accounts[1], web3.toWei(buyAmount, 'ether'))
+            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let diff = afterTokens.minus(beforeTokens)
+            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
         })
     })
 
@@ -414,7 +422,7 @@ contract('ViolaCrowdsale', function (accounts) {
             diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
         })
 
-        it('should distrubte bonus tokens', async function () {
+        it('investor should claim bonus tokens', async function () {
             await increaseTime(day * 180)
             let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             let bonusAllocated = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])            
@@ -424,7 +432,7 @@ contract('ViolaCrowdsale', function (accounts) {
             diff.should.be.bignumber.equal(bonusAllocated)
         })
 
-        it('should not distrubte bonus tokens before vesting period', async function () {
+        it('investor should not claim bonus tokens before vesting period', async function () {
             await increaseTime(day * 20)         
             await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[1]}).should.be.rejectedWith('revert')
         })
