@@ -363,10 +363,70 @@ contract('ViolaCrowdsale', function (accounts) {
     })
 
     describe('distributing tokens', function () {
-        //TODO
+        let buyAmount = 1;
+        beforeEach(async function() {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+        })
+
+        it('should distribute ICO tokens', async function () {
+            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            await this.violaCrowdSaleInstance.distributeICOTokens(accounts[1])
+            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let diff = afterTokens.minus(beforeTokens)
+            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
+        })
+
+        it('should distrubte bonus tokens', async function () {
+            await increaseTime(day * 180)
+            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let bonusAllocated = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])            
+            await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[1])
+            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let diff = afterTokens.minus(beforeTokens)
+            diff.should.be.bignumber.equal(bonusAllocated)
+        })
+
+        it('should not distrubte bonus tokens before vesting period', async function () {
+            await increaseTime(day * 20)         
+            await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[1]).should.be.rejectedWith('revert')
+        })
     })
 
     describe('claiming tokens', function () {
-        //TODO
+        let buyAmount = 1;
+        beforeEach(async function() {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+        })
+
+        it('investor should claim ICO tokens', async function () {
+            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            await this.violaCrowdSaleInstance.claimTokens({from:accounts[1]})
+            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let diff = afterTokens.minus(beforeTokens)
+            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
+        })
+
+        it('should distrubte bonus tokens', async function () {
+            await increaseTime(day * 180)
+            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let bonusAllocated = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])            
+            await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[1]})
+            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
+            let diff = afterTokens.minus(beforeTokens)
+            diff.should.be.bignumber.equal(bonusAllocated)
+        })
+
+        it('should not distrubte bonus tokens before vesting period', async function () {
+            await increaseTime(day * 20)         
+            await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[1]}).should.be.rejectedWith('revert')
+        })
     })
 })

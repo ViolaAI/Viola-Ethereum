@@ -295,7 +295,7 @@ contract ViolaCrowdsale is Ownable {
     }
 
     //Used by investor to claim bonus token
-    function claimBonusToken() external {
+    function claimBonusTokens() external {
       require(status == State.Ended);
       require(now >= startTime + bonusVestingPeriod);
 
