@@ -67,9 +67,6 @@ contract ViolaCrowdsale is Ownable {
 
   uint256 public leftoverTokensBuffer;
 
-  // when to refresh cap
-  uint public capRefreshPeriod = 86400;
-
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -423,9 +420,9 @@ contract ViolaCrowdsale is Ownable {
     }
 
   function getTimeBasedBonusRate() public view returns(uint) {
-    bool withinTwoDay = now >= startTime && now <= (startTime + (86400 * 2));
-    bool withinDay3and10 = now > (startTime + (86400 * 2)) && now <= (startTime + (86400 * 10));
-    bool afterDay10 = now > (startTime + (86400 * 10)) && now <= endTime;
+    bool withinTwoDay = now >= startTime && now <= (startTime + 2 days);
+    bool withinDay3and10 = now > (startTime + 2 days) && now <= (startTime + 10 days);
+    bool afterDay10 = now > (startTime + 10 days) && now <= endTime;
     if (withinTwoDay) {
       return bonusTokenRateByLevels[0];
     } else if (withinDay3and10) {

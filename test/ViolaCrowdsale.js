@@ -184,41 +184,40 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('at the end of Day 2 should be 30', async function(){
-            await increaseTime(86400 * 2 - 10)
+            await increaseTime(day * 2 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(30))
         })
 
         it('at the beginning of Day 3 should be 15', async function(){
-            await increaseTime(86400 * 2 + 1)
+            await increaseTime(day * 2 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
         })
 
         it('at the end of Day 10 should be 15', async function(){
-            await increaseTime(86400 * 10 - 10)
+            await increaseTime(day * 10 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
         })
         
         it('at the beginning of Day 11 should be 8', async function(){
-            await increaseTime(86400 * 10 + 1)
+            await increaseTime(day * 10 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(8))
         })
 
         it('at the end should be 8', async function(){
-            await increaseTime(86400 * 20 - 10) // End after 20 days
+            await increaseTime(day * 20 - 10) // End after 20 days
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(8))
         })
 
         it('after ending of ICO should be 0', async function(){
-            await increaseTime(86400 * 20 + 1)
+            await increaseTime(day * 20 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(0))
         })
-
     })
   
     describe('setting rate', function () {
@@ -336,14 +335,14 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('buyer should receive 15% bonus tokens from Day 3', async function() {
-            await increaseTime(86400 * 2 + 1)
+            await increaseTime(day * 2 + 1)
             await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15, 'ether'))
         })
 
         it('buyer should receive 15% bonus tokens from Day 11', async function() {
-            await increaseTime(86400 * 10 + 1)
+            await increaseTime(day * 10 + 1)
             await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08, 'ether'))
