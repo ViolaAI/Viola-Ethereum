@@ -26,6 +26,9 @@ contract ViolaCrowdsale is Ownable {
   //For keeping track of whitelist address. cap >0 = whitelisted
   mapping(address=>uint) public maxBuyCap;
 
+  //For checking if address passed KYC
+  mapping(address => bool)public addressKYC;
+
   //Total wei sum an address has invested
   mapping(address=>uint) public investedSum;
 
@@ -65,6 +68,7 @@ contract ViolaCrowdsale is Ownable {
   //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
 
+  //Numbers of token left above 0 to still be considered sold
   uint256 public leftoverTokensBuffer;
 
   /**
@@ -79,6 +83,7 @@ contract ViolaCrowdsale is Ownable {
   event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
   event BonusTokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
+  event TopupTokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
   event CrowdsalePending();
   event CrowdsaleStarted();
   event CrowdsaleEnded();
@@ -104,6 +109,7 @@ contract ViolaCrowdsale is Ownable {
     status = State.PendingStart;
 
     CrowdsalePending();
+
   }
 
   // To be called by Ethereum alarm clock
@@ -150,6 +156,12 @@ contract ViolaCrowdsale is Ownable {
     forwardFunds();
   }
 
+  function setLeftoverTokensBuffer(uint256 _tokenBuffer) onlyOwner external {
+    require(_tokenBuffer > 0);
+    require(getTokensLeft() >= _tokenBuffer);
+    leftoverTokensBuffer = _tokenBuffer;
+  }
+
   //Set the number of bonus token per ether
   function setBonusRate(uint _bonusRate) onlyOwner external {
     require(_bonusRate > 0);
@@ -174,6 +186,16 @@ contract ViolaCrowdsale is Ownable {
     if (weiAmount > 0) {
       refund(_investor);
     }
+  }
+
+  function approveKYC(address _kycAddress) onlyOwner external {
+    require(_kycAddress != address(0));
+    addressKYC[_kycAddress] = true;
+  }
+
+  function revokeKYC(address _kycAddress) onlyOwner external {
+    require(_kycAddress != address(0));
+    addressKYC[_kycAddress] = false;
   }
 
   //Get max wei an address can buy up to
@@ -201,7 +223,6 @@ contract ViolaCrowdsale is Ownable {
 
   //Used to buy tokens
   function buyTokens(address investor) public payable {
-    //require(tx.gasprice <= 50000000 wei);
     require(status == State.Active);
     require(msg.value > minWeiToPurchase);
 
@@ -278,7 +299,7 @@ contract ViolaCrowdsale is Ownable {
   //Used by investor to claim token
     function claimTokens() external {
       require(status == State.Ended);
-
+      require(addressKYC[msg.sender]);
       address tokenReceiver = msg.sender;
       uint tokensToClaim = tokensAllocated[tokenReceiver];
 
@@ -295,6 +316,7 @@ contract ViolaCrowdsale is Ownable {
     function claimBonusTokens() external {
       require(status == State.Ended);
       require(now >= startTime + bonusVestingPeriod);
+      require(addressKYC[msg.sender]);
 
       address tokenReceiver = msg.sender;
       uint tokensToClaim = bonusTokensAllocated[tokenReceiver];
@@ -342,13 +364,13 @@ contract ViolaCrowdsale is Ownable {
 
 
     //For owner to reserve token for presale
-    function reserveTokens(uint _amount) onlyOwner external {
+    // function reserveTokens(uint _amount) onlyOwner external {
 
-      require(getTokensLeft() >= _amount);
-      totalTokensAllocated = totalTokensAllocated.add(_amount);
-      totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
+    //   require(getTokensLeft() >= _amount);
+    //   totalTokensAllocated = totalTokensAllocated.add(_amount);
+    //   totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
 
-    }
+    // }
 
     //To distribute tokens not allocated by crowdsale contract
     function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
@@ -378,6 +400,19 @@ contract ViolaCrowdsale is Ownable {
 
     }
 
+    function allocateTopupToken(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
+      require(status == State.Ended);
+      require(_amount > 0);
+      uint256 tokensToAllocate = _amount.add(_bonusAmount);
+
+      require(getTokensLeft() >= tokensToAllocate);
+      totalTokensAllocated = totalTokensAllocated.add(_amount);
+
+      tokensAllocated[_investor] += _amount;
+      bonusTokensAllocated[_investor] += _bonusAmount;
+
+      TopupTokenAllocated(_investor,  _amount, _bonusAmount);
+    }
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
