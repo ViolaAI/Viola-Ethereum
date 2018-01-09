@@ -349,17 +349,17 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe('reserving tokens', function () {
-        it('should reserve presale tokens', async function () {
-            await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('5', 'ether'))
-            let tokensLeft = await this.violaCrowdSaleInstance.getTokensLeft()
-            tokensLeft.should.be.bignumber.equal(web3.toWei('5', 'ether'))
-        })
+    // describe('reserving tokens', function () {
+    //     it('should reserve presale tokens', async function () {
+    //         await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('5', 'ether'))
+    //         let tokensLeft = await this.violaCrowdSaleInstance.getTokensLeft()
+    //         tokensLeft.should.be.bignumber.equal(web3.toWei('5', 'ether'))
+    //     })
 
-        it('should not reserve presale tokens more than allowed tokens', async function () {
-            await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('100', 'ether')).should.be.rejectedWith('revert')
-        })
-    })
+    //     it('should not reserve presale tokens more than allowed tokens', async function () {
+    //         await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('100', 'ether')).should.be.rejectedWith('revert')
+    //     })
+    // })
 
     describe('distributing tokens', function () {
         let buyAmount = 1;
@@ -414,6 +414,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('investor should claim ICO tokens', async function () {
+            await this.violaCrowdSaleInstance.approveKYC(accounts[1])
             let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             await this.violaCrowdSaleInstance.claimTokens({from:accounts[1]})
             let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
@@ -422,6 +423,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('investor should claim bonus tokens', async function () {
+            await this.violaCrowdSaleInstance.approveKYC(accounts[1])            
             await increaseTime(day * 180)
             let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             let bonusAllocated = await this.violaCrowdSaleInstance.getAddressBonusAllocatedTokens(accounts[1])            
