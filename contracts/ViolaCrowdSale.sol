@@ -72,6 +72,12 @@ contract ViolaCrowdsale is Ownable {
   uint256 public leftoverTokensBuffer;
 
   /**
+   * Note all values are calculated in wei(uint256) including token amount
+   * 1 ether = 1000000000000000000 wei
+   * 1 viola = 1000000000000000000 violawei
+   */
+
+  /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
    * @param value weis paid for purchase
@@ -112,10 +118,12 @@ contract ViolaCrowdsale is Ownable {
 
   }
 
-  // To be called by Ethereum alarm clock
+  // To be called by Ethereum alarm clock or anyone
+  //Can only be called successfully when time is valid
   function startCrowdSale() external {
     require(withinPeriod());
     require(violaToken != address(0));
+    require(getTokensLeft() > 0);
     require(status == State.PendingStart);
 
     status = State.Active;
@@ -169,6 +177,7 @@ contract ViolaCrowdsale is Ownable {
     }
 
   //Add the address to whitelist
+  //Set the amount of wei an address can purchase up to
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
         require(_cap > 0);
         require(_investor != address(0));
@@ -222,7 +231,7 @@ contract ViolaCrowdsale is Ownable {
   }
 
   //Used to buy tokens
-  function buyTokens(address investor) public payable {
+  function buyTokens(address investor) internal {
     require(status == State.Active);
     require(msg.value > minWeiToPurchase);
 
@@ -234,30 +243,6 @@ contract ViolaCrowdsale is Ownable {
 
     // update state
     weiRaised = weiRaised.add(weiAmount);
-  }
-
-  //Refund users in case of unsuccessful crowdsale
-  function refund(address _investor) onlyOwner public {
-    require(_investor != address(0));
-    
-    uint256 weiAmount = investedSum[_investor];
-    require(weiAmount > 0);
-
-    if (status == State.Active) {
-      uint256 investorTokens = tokensAllocated[_investor];
-      investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
-
-      totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
-    }
-
-    tokensAllocated[_investor] = 0;
-    bonusTokensAllocated[_investor] = 0;
-    investedSum[_investor] = 0;
-    weiRaised = weiRaised.sub(weiAmount);
-
-    _investor.transfer(weiAmount);
-
-    Refunded(_investor, weiAmount);
   }
 
   //Internal call to check max user cap
@@ -287,6 +272,7 @@ contract ViolaCrowdsale is Ownable {
         }
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
+
   //Checks if token has been sold out
     function tokensHasSoldOut() view internal returns (bool) {
       if (getTokensLeft() <= leftoverTokensBuffer) {
@@ -295,6 +281,32 @@ contract ViolaCrowdsale is Ownable {
         return false;
       }
     }
+
+
+
+  //Refund users in case of unsuccessful crowdsale
+  function refund(address _investor) onlyOwner public {
+    require(_investor != address(0));
+    
+    uint256 weiAmount = investedSum[_investor];
+    require(weiAmount > 0);
+
+    if (status == State.Active) {
+      uint256 investorTokens = tokensAllocated[_investor];
+      investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
+
+      totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
+    }
+
+    tokensAllocated[_investor] = 0;
+    bonusTokensAllocated[_investor] = 0;
+    investedSum[_investor] = 0;
+    weiRaised = weiRaised.sub(weiAmount);
+
+    _investor.transfer(weiAmount);
+
+    Refunded(_investor, weiAmount);
+  }
 
   //Used by investor to claim token
     function claimTokens() external {
