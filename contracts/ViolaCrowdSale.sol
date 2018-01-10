@@ -49,7 +49,7 @@ contract ViolaCrowdsale is Ownable {
    * 1 viola = 1000000000000000000 violawei
    */
 
-   
+
   //Address where funds are collected
   address public wallet;
 
@@ -160,11 +160,17 @@ contract ViolaCrowdsale is Ownable {
   }
 
   function completeCrowdSale() onlyOwner external {
-    require(status == State.Ended);
-
+    require(hasEnded());
+    require(violaToken.allowance(owner, this) == 0);
     status = State.Completed;
 
     forwardFunds();
+  }
+
+  function burnExtraTokens() onlyOwner external {
+    require(hasEnded());
+    uint256 extraTokensToBurn = violaToken.allowance(owner, this);
+    violaToken.transferFrom(owner, 0x0000000000000000000000000000000000000000, extraTokensToBurn);
   }
 
   // send ether to the fund collection wallet
@@ -183,12 +189,6 @@ contract ViolaCrowdsale is Ownable {
     require(getTokensLeft() >= _tokenBuffer);
     leftoverTokensBuffer = _tokenBuffer;
   }
-
-  //Set the number of bonus token per ether
-  function setBonusRate(uint _bonusRate) onlyOwner external {
-    require(_bonusRate > 0);
-    bonusTokenRate = _bonusRate;
-    }
 
   //Set the ether to token rate
   function setRate(uint _rate) onlyOwner external {
@@ -275,7 +275,15 @@ contract ViolaCrowdsale is Ownable {
 
   // @return true if crowdsale event has ended
   function hasEnded() public view returns (bool) {
+    if (status == State.Ended) {
+      return true;
+    }
     return now > endTime;
+  }
+
+  function getKYC(address _kycAddress) external view returns (bool) {
+    require(_kycAddress != address(0));
+    return addressKYC[_kycAddress];
   }
 
   function getTokensLeft() public view returns (uint) {
@@ -343,7 +351,7 @@ contract ViolaCrowdsale is Ownable {
   //Internal call to check max user cap
   function checkCapAndRecord(address investor, uint weiAmount) internal {
       uint remaindingCap = maxBuyCap[investor];
-      require(remaindingCap > weiAmount);
+      require(remaindingCap >= weiAmount);
       maxBuyCap[investor] = remaindingCap.sub(weiAmount);
       investedSum[investor] = investedSum[investor].add(weiAmount);
   }
@@ -403,7 +411,7 @@ contract ViolaCrowdsale is Ownable {
 
   //Used by investor to claim token
     function claimTokens() external {
-      require(status == State.Ended);
+      require(hasEnded());
       require(addressKYC[msg.sender]);
       address tokenReceiver = msg.sender;
       uint tokensToClaim = tokensAllocated[tokenReceiver];
@@ -419,7 +427,7 @@ contract ViolaCrowdsale is Ownable {
 
     //Used by investor to claim bonus token
     function claimBonusTokens() external {
-      require(status == State.Ended);
+      require(hasEnded());
       require(now >= startTime + bonusVestingPeriod);
       require(addressKYC[msg.sender]);
 
@@ -436,7 +444,7 @@ contract ViolaCrowdsale is Ownable {
 
     //Used by owner to distribute bonus token
     function distributeBonusTokens(address _tokenReceiver) onlyOwner external {
-      require(status == State.Ended);
+      require(hasEnded());
       require(now >= startTime + bonusVestingPeriod);
 
       address tokenReceiver = _tokenReceiver;
@@ -453,7 +461,7 @@ contract ViolaCrowdsale is Ownable {
 
     //Used by owner to distribute token
     function distributeICOTokens(address _tokenReceiver) onlyOwner external {
-      require(status == State.Ended);
+      require(hasEnded());
 
       address tokenReceiver = _tokenReceiver;
       uint tokensToClaim = tokensAllocated[tokenReceiver];
@@ -479,7 +487,7 @@ contract ViolaCrowdsale is Ownable {
 
     //To distribute tokens not allocated by crowdsale contract
     function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
-      require(status == State.Ended);
+      require(hasEnded());
       require(_tokenReceiver != address(0));
       require(_amount > 0);
 
@@ -506,7 +514,7 @@ contract ViolaCrowdsale is Ownable {
     }
 
     function allocateTopupToken(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
-      require(status == State.Ended);
+      require(hasEnded());
       require(_amount > 0);
       uint256 tokensToAllocate = _amount.add(_bonusAmount);
 
