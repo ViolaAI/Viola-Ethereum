@@ -86,11 +86,6 @@ App = {
   },
 
   updateStatus: function () {
-    // <option>Start</option>
-    // <option>End</option>
-    // <option>Pause</option>
-    // <option>Unpause</option>
-    // <option>Complete</option>
     var status = $('#updateStatus option:selected').text()
     switch (status) {
       case 'Start':
@@ -126,6 +121,17 @@ App = {
   getAddressCap: function () {
     var addressCap = App.contracts.Crowdsale.getAddressCap(App.account, function (error, result) { console.log(web3.fromWei(result, 'ether')) })
     console.log(addressCap)
+  },
+
+
+  claimToken: function () {
+    App.contracts.Crowdsale.claimTokens(function (error, result) {
+    });
+  },
+
+  claimBonusToken: function () {
+    App.contracts.Crowdsale.claimBonusTokens(function (error, result) {
+    });
   },
 
   listenToEvents: function () {
