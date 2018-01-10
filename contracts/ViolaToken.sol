@@ -4,10 +4,10 @@ import '../node_modules/zeppelin-solidity/contracts/token/StandardToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract ViolaToken is StandardToken {
-    string public constant name = "ViolaToken";
-    string public constant symbol = "VIOLA";
-    uint8 public constant decimals = 18;
-    uint256 public constant INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));
+    string public constant NAME = "ViolaToken";
+    string public constant SYMBOL = "VIOLA";
+    uint8 public constant DECIMAL = 18;
+    uint256 public constant INITIAL_SUPPLY = 1000000000 * (10 ** uint256(DECIMAL));
 
   function ViolaToken() public 
   {

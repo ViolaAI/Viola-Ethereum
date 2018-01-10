@@ -5,13 +5,12 @@ import '../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 /**
- * @title Crowdsale
- * @dev Crowdsale is a base contract for managing a token crowdsale.
- * Crowdsales have a start and end timestamps, where investors can make
- * token purchases and the crowdsale will assign them tokens based
- * on a token per ETH rate. Funds collected are forwarded to a wallet
- * as they arrive.
+ * @title ViolaCrowdsale
+ * @dev ViolaCrowdsale reserves token from supply when eth is received
+ * funds will be forwarded after the end of crowdsale. Tokens will be claimable
+ * within 7 days after crowdsale ends.
  */
+ 
 contract ViolaCrowdsale is Ownable {
   using SafeMath for uint256;
 
@@ -41,8 +40,16 @@ contract ViolaCrowdsale is Ownable {
   //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
-  uint256 public bonusVestingPeriod = 180 days;
+  uint256 public bonusVestingPeriod = 60 days;
 
+
+  /**
+   * Note all values are calculated in wei(uint256) including token amount
+   * 1 ether = 1000000000000000000 wei
+   * 1 viola = 1000000000000000000 violawei
+   */
+
+   
   //Address where funds are collected
   address public wallet;
 
@@ -72,17 +79,7 @@ contract ViolaCrowdsale is Ownable {
   uint256 public leftoverTokensBuffer;
 
   /**
-   * Note all values are calculated in wei(uint256) including token amount
-   * 1 ether = 1000000000000000000 wei
-   * 1 viola = 1000000000000000000 violawei
-   */
-
-  /**
-   * event for token purchase logging
-   * @param purchaser who paid for the tokens
-   * @param value weis paid for purchase
-   * @param amount amount of tokens purchased
-   * @param bonusAmount bonus amount of token allocated
+   * event for front end logging
    */
 
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
@@ -117,6 +114,12 @@ contract ViolaCrowdsale is Ownable {
     CrowdsalePending();
 
   }
+
+  /**
+   * Crowdsale state functions
+   * To track state of current crowdsale
+   */
+
 
   // To be called by Ethereum alarm clock or anyone
   //Can only be called successfully when time is valid
@@ -164,6 +167,17 @@ contract ViolaCrowdsale is Ownable {
     forwardFunds();
   }
 
+  // send ether to the fund collection wallet
+  function forwardFunds() internal {
+    wallet.transfer(weiRaised);
+  }
+
+  /**
+   * Setter functions for crowdsale parameters
+   * Only owner can set values
+   */
+
+
   function setLeftoverTokensBuffer(uint256 _tokenBuffer) onlyOwner external {
     require(_tokenBuffer > 0);
     require(getTokensLeft() >= _tokenBuffer);
@@ -176,8 +190,25 @@ contract ViolaCrowdsale is Ownable {
     bonusTokenRate = _bonusRate;
     }
 
-  //Add the address to whitelist
+  //Set the ether to token rate
+  function setRate(uint _rate) onlyOwner external {
+    require(_rate > 0);
+    rate = _rate;
+  }
+
+  function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
+    minWeiToPurchase = _minWeiToPurchase;
+  }
+
+
+  /**
+   * Whitelisting and KYC functions
+   * Whitelisted address can buy tokens, KYC successful purchaser can claim token. Refund if fail KYC
+   */
+
+
   //Set the amount of wei an address can purchase up to
+  //Value of 0 = not whitelisted
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
         require(_cap > 0);
         require(_investor != address(0));
@@ -197,15 +228,28 @@ contract ViolaCrowdsale is Ownable {
     }
   }
 
+  //Flag address as KYC approved. Address is now approved to claim tokens
   function approveKYC(address _kycAddress) onlyOwner external {
     require(_kycAddress != address(0));
     addressKYC[_kycAddress] = true;
   }
 
+  //Set KYC status as failed. Refund any eth back to address
   function revokeKYC(address _kycAddress) onlyOwner external {
     require(_kycAddress != address(0));
     addressKYC[_kycAddress] = false;
+
+    uint256 weiAmount = investedSum[_kycAddress];
+    if (weiAmount > 0) {
+      refund(_kycAddress);
+    }
   }
+
+  /**
+   * Getter functions for crowdsale parameters
+   * Does not use gas
+   */
+   
 
   //Get max wei an address can buy up to
   function getAddressCap( address _user ) view public returns(uint) {
@@ -215,15 +259,66 @@ contract ViolaCrowdsale is Ownable {
         }
   }
 
-  //Set the ether to token rate
-  function setRate(uint _rate) onlyOwner external {
-    require(_rate > 0);
-    rate = _rate;
+  //Checks if token has been sold out
+    function tokensHasSoldOut() view internal returns (bool) {
+      if (getTokensLeft() <= leftoverTokensBuffer) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+      // @return true if the transaction can buy tokens
+  function withinPeriod() public view returns (bool) {
+    return now >= startTime && now <= endTime;
   }
 
-  function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
-    minWeiToPurchase = _minWeiToPurchase;
+  // @return true if crowdsale event has ended
+  function hasEnded() public view returns (bool) {
+    return now > endTime;
   }
+
+  function getTokensLeft() public view returns (uint) {
+    return violaToken.allowance(owner, this).sub(totalTokensAllocated);
+  }
+
+  function transferTokens (address receiver, uint tokenAmount) internal {
+     require(violaToken.transferFrom(owner, receiver, tokenAmount));
+  }
+
+  function getAddressAllocatedTokens(address investor) public view returns(uint) {
+    return tokensAllocated[investor];
+  }
+
+  function getAddressBonusAllocatedTokens(address investor) public view returns(uint) {
+    return bonusTokensAllocated[investor];
+  }
+
+  function getAddressAmtInvested(address investor) public view returns(uint) {
+    return investedSum[investor];
+  }
+
+  function getTimeBasedBonusRate() public view returns(uint) {
+    bool withinTwoDay = now >= startTime && now <= (startTime + 2 days);
+    bool withinDay3and10 = now > (startTime + 2 days) && now <= (startTime + 10 days);
+    bool afterDay10 = now > (startTime + 10 days) && now <= endTime;
+    if (withinTwoDay) {
+      return bonusTokenRateByLevels[0];
+    } else if (withinDay3and10) {
+      return bonusTokenRateByLevels[1];
+    } else if (afterDay10) {
+      return bonusTokenRateByLevels[2];
+    } else {
+      return 0;
+    }
+  }
+
+
+  /**
+   * Functions to handle buy tokens
+   * Fallback function as entry point for eth
+   */
+
 
   // Called when ether is sent to contract
   function () external payable {
@@ -273,14 +368,12 @@ contract ViolaCrowdsale is Ownable {
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
 
-  //Checks if token has been sold out
-    function tokensHasSoldOut() view internal returns (bool) {
-      if (getTokensLeft() <= leftoverTokensBuffer) {
-        return true;
-      } else {
-        return false;
-      }
-    }
+
+
+  /**
+   * Functions for refunds & claim tokens
+   * 
+   */
 
 
 
@@ -426,59 +519,10 @@ contract ViolaCrowdsale is Ownable {
       TopupTokenAllocated(_investor,  _amount, _bonusAmount);
     }
 
-  // send ether to the fund collection wallet
-  // override to create custom fund forwarding mechanisms
-  function forwardFunds() internal {
-    wallet.transfer(weiRaised);
-  }
-
-  // @return true if the transaction can buy tokens
-  function withinPeriod() public view returns (bool) {
-    return now >= startTime && now <= endTime;
-  }
-
-  // @return true if crowdsale event has ended
-  function hasEnded() public view returns (bool) {
-    return now > endTime;
-  }
-
-  function getTokensLeft() public view returns (uint) {
-    return violaToken.allowance(owner, this).sub(totalTokensAllocated);
-  }
-
-  function transferTokens (address receiver, uint tokenAmount) internal {
-     require(violaToken.transferFrom(owner, receiver, tokenAmount));
-  }
-
-  function getAddressAllocatedTokens(address investor) public view returns(uint) {
-    return tokensAllocated[investor];
-  }
-
-  function getAddressBonusAllocatedTokens(address investor) public view returns(uint) {
-    return bonusTokensAllocated[investor];
-  }
-
-  function getAddressAmtInvested(address investor) public view returns(uint) {
-    return investedSum[investor];
-  }
-
+  //For cases where token are mistakenly sent / airdrops
   function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {
-        token.transfer(owner,amount);
-    }
-
-  function getTimeBasedBonusRate() public view returns(uint) {
-    bool withinTwoDay = now >= startTime && now <= (startTime + 2 days);
-    bool withinDay3and10 = now > (startTime + 2 days) && now <= (startTime + 10 days);
-    bool afterDay10 = now > (startTime + 10 days) && now <= endTime;
-    if (withinTwoDay) {
-      return bonusTokenRateByLevels[0];
-    } else if (withinDay3and10) {
-      return bonusTokenRateByLevels[1];
-    } else if (afterDay10) {
-      return bonusTokenRateByLevels[2];
-    } else {
-      return 0;
-    }
+    require(status == State.Completed);
+    token.transfer(owner,amount);
   }
 
 }
