@@ -61,9 +61,6 @@ contract ViolaCrowdsale is Ownable {
   // how many token units a buyer gets per eth
   uint256 public rate;
 
-  // how many bonus token units a buyer gets per eth
-  uint public bonusTokenRate;
-
   //Extra bonus token to give *per ETH*
   uint public bonusTokenRateLevelOne = 30;
   uint public bonusTokenRateLevelTwo = 15;
@@ -98,11 +95,10 @@ contract ViolaCrowdsale is Ownable {
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
   //Set inital arguments of the crowdsale
-  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _bonusRate, address _tokenAddress, address _wallet) onlyOwner external {
+  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
-    require(_bonusRate > 0);
     require(address(_tokenAddress) != address(0));
     require(_wallet != address(0));
 
@@ -110,7 +106,6 @@ contract ViolaCrowdsale is Ownable {
     endTime = _endTime;
     rate = _rate;
     wallet = _wallet;
-    bonusTokenRate = _bonusRate;
     violaToken = TokenERC20(_tokenAddress);
 
     status = State.PendingStart;
@@ -206,16 +201,19 @@ contract ViolaCrowdsale is Ownable {
   function setBonusTokenRateLevelOne(uint _rate) onlyOwner external {
     require(_rate > 0);
     bonusTokenRateLevelOne = _rate;
+    BonusRateChanged();
   }
 
   function setBonusTokenRateLevelTwo(uint _rate) onlyOwner external {
     require(_rate > 0);
     bonusTokenRateLevelTwo = _rate;
+    BonusRateChanged();
   }
 
   function setBonusTokenRateLevelThree(uint _rate) onlyOwner external {
     require(_rate > 0);
     bonusTokenRateLevelThree = _rate;
+    BonusRateChanged();
   }
 
   function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
