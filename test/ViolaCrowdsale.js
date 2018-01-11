@@ -35,7 +35,7 @@ contract('ViolaCrowdsale', function (accounts) {
         this.violaTokenInstance = await ViolaToken.new();        
         this.violaCrowdSaleInstance = await ViolaCrowdSale.new();
         await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('10', 'ether'))            
-        await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, rate, this.violaTokenInstance.address, wallet);
+        await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, this.violaTokenInstance.address, wallet);
     })
 
     describe('initializing contract', function () {
