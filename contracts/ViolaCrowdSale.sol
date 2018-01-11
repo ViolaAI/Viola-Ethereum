@@ -66,9 +66,9 @@ contract ViolaCrowdsale is Ownable {
   uint public bonusTokenRate;
 
   //Extra bonus token to give *per ETH*
-  uint bonusTokenRateLevelOne = 30;
-  uint bonusTokenRateLevelTwo = 15;
-  uint bonusTokenRateLevelThree = 8;
+  uint public bonusTokenRateLevelOne = 30;
+  uint public bonusTokenRateLevelTwo = 15;
+  uint public bonusTokenRateLevelThree = 8;
 
   // amount of raised money in wei
   uint256 public weiRaised;

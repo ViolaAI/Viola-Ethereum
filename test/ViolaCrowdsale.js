@@ -68,7 +68,7 @@ contract('ViolaCrowdsale', function (accounts) {
             allowedTokens.should.be.bignumber.equal(new BigNumber(0))
         })
 
-        it.only('should decrease contract allowance', async function () {
+        it('should decrease contract allowance', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale()
@@ -197,6 +197,27 @@ contract('ViolaCrowdsale', function (accounts) {
             let afterFund = web3.eth.getBalance(accounts[1])
             let diffBalance = afterFund.minus(beforeFund)
             diffBalance.should.be.bignumber.equal(amountInvested)
+        })
+    })
+
+    describe('setting bonus token rates', function () {
+        let bonusTokenRate = new BigNumber(100)
+        it('should update bonus rate for level one', async function() {
+            await this.violaCrowdSaleInstance.setBonusTokenRateLevelOne(bonusTokenRate)
+            let newBonusTokenRate = await this.violaCrowdSaleInstance.bonusTokenRateLevelOne.call()
+            newBonusTokenRate.should.be.bignumber.equal(bonusTokenRate)
+        })
+
+        it('should update bonus rate for level two', async function() {
+            await this.violaCrowdSaleInstance.setBonusTokenRateLevelTwo(bonusTokenRate)
+            let newBonusTokenRate = await this.violaCrowdSaleInstance.bonusTokenRateLevelTwo.call()
+            newBonusTokenRate.should.be.bignumber.equal(bonusTokenRate)
+        })
+
+        it('should update bonus rate for level three', async function() {
+            await this.violaCrowdSaleInstance.setBonusTokenRateLevelThree(bonusTokenRate)
+            let newBonusTokenRate = await this.violaCrowdSaleInstance.bonusTokenRateLevelThree.call()
+            newBonusTokenRate.should.be.bignumber.equal(bonusTokenRate)
         })
     })
   
