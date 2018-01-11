@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
+import './ViolaToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -20,7 +20,7 @@ contract ViolaCrowdsale is Ownable {
   State public status = State.Deployed;
 
   // The token being sold
-  ERC20 public violaToken;
+  ViolaToken public violaToken;
 
   //For keeping track of whitelist address. cap >0 = whitelisted
   mapping(address=>uint) public maxBuyCap;
@@ -107,7 +107,7 @@ contract ViolaCrowdsale is Ownable {
     rate = _rate;
     wallet = _wallet;
     bonusTokenRate = _bonusRate;
-    violaToken = ERC20(_tokenAddress);
+    violaToken = ViolaToken(_tokenAddress);
 
     status = State.PendingStart;
 
@@ -165,12 +165,16 @@ contract ViolaCrowdsale is Ownable {
     status = State.Completed;
 
     forwardFunds();
+
+    assert(this.balance == 0);
   }
 
   function burnExtraTokens() onlyOwner external {
     require(hasEnded());
     uint256 extraTokensToBurn = violaToken.allowance(owner, this);
-    violaToken.transferFrom(owner, 0x0000000000000000000000000000000000000000, extraTokensToBurn);
+    violaToken.burnFrom(owner, extraTokensToBurn);
+
+    assert(violaToken.allowance(owner, this) == 0);
   }
 
   // send ether to the fund collection wallet
