@@ -178,7 +178,7 @@ contract ViolaCrowdsale is Ownable {
     require(hasEnded());
     uint256 extraTokensToBurn = violaToken.allowance(owner, this);
     violaToken.burnFrom(owner, extraTokensToBurn);
-    // assert(violaToken.allowance(owner, this) == 0);
+    assert(violaToken.allowance(owner, this) == 0);
   }
 
   // send ether to the fund collection wallet
