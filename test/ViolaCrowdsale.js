@@ -2,7 +2,7 @@ import increaseTime from './helper/increaseTime'
 import {expect} from 'Chai'
 // Contract to be tested
 const ViolaCrowdSale = artifacts.require('ViolaCrowdsale')
-const ViolaToken = artifacts.require('ViolaToken')
+const ViolaToken = artifacts.require('TokenERC20')
 
 const BigNumber = web3.BigNumber
 
@@ -58,7 +58,29 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe('ending crowdsale', function () {
+    describe('burning token', function() {
+        it('should burn extra tokens', async function () {
+            await increaseTime(10)
+            let tokens = await this.violaTokenInstance.allowance(accounts[0], this.violaCrowdSaleInstance.address)
+            console.log(tokens)
+            await this.violaTokenInstance.burn(tokens)
+            let balance = await this.violaTokenInstance.allowance(accounts[0], this.violaCrowdSaleInstance.address)
+            
+            // await this.violaCrowdSaleInstance.startCrowdSale()
+            // await this.violaCrowdSaleInstance.endCrowdSale()
+            // let totalSupply = await this.violaTokenInstance.totalSupply.call();
+            // console.log(totalSupply);
+            // await this.violaCrowdSaleInstance.burnExtraTokens()
+            // totalSupply = await this.violaTokenInstance.totalSupply.call();
+            // console.log(totalSupply);
+            
+            // let allowedTokens = await this.violaTokenInstance.allowance(accounts[0], this.violaCrowdSaleInstance.address)
+            // console.log(allowedTokens)
+            // allowedTokens.should.be.bignumber.equal(new BigNumber(0))
+        })
+    })
+
+    describe.only('ending crowdsale', function () {
         it('should end crowdsale from Active status', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
@@ -364,18 +386,6 @@ contract('ViolaCrowdsale', function (accounts) {
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08, 'ether'))
         })
     })
-
-    // describe('reserving tokens', function () {
-    //     it('should reserve presale tokens', async function () {
-    //         await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('5', 'ether'))
-    //         let tokensLeft = await this.violaCrowdSaleInstance.getTokensLeft()
-    //         tokensLeft.should.be.bignumber.equal(web3.toWei('5', 'ether'))
-    //     })
-
-    //     it('should not reserve presale tokens more than allowed tokens', async function () {
-    //         await this.violaCrowdSaleInstance.reserveTokens(web3.toWei('100', 'ether')).should.be.rejectedWith('revert')
-    //     })
-    // })
 
     describe('distributing tokens', function () {
         let buyAmount = 1;

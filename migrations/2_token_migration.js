@@ -1,4 +1,4 @@
-var Migrations = artifacts.require("./ViolaToken.sol");
+var Migrations = artifacts.require("./TokenERC20.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(Migrations);
