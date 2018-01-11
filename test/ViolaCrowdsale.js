@@ -68,7 +68,7 @@ contract('ViolaCrowdsale', function (accounts) {
             allowedTokens.should.be.bignumber.equal(new BigNumber(0))
         })
 
-        it.only('should decrease contract allowance', async function () {
+        it('should decrease contract allowance', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale()
