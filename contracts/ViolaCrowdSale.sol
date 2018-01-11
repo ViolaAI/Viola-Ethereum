@@ -2,7 +2,6 @@ pragma solidity ^0.4.18;
 
 import './TokenERC20.sol';
 import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
-import '../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 
