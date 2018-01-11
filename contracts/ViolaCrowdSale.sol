@@ -63,7 +63,9 @@ contract ViolaCrowdsale is Ownable {
   uint public bonusTokenRate;
 
   //Extra bonus token to give *per ETH*
-  uint[] bonusTokenRateByLevels = [30, 15, 8];
+  uint bonusTokenRateLevelOne = 30;
+  uint bonusTokenRateLevelTwo = 15;
+  uint bonusTokenRateLevelThree = 8;
 
   // amount of raised money in wei
   uint256 public weiRaised;
@@ -170,7 +172,7 @@ contract ViolaCrowdsale is Ownable {
   function burnExtraTokens() onlyOwner external {
     require(hasEnded());
     uint256 extraTokensToBurn = violaToken.allowance(owner, this);
-    violaToken.transferFrom(owner, 0x0000000000000000000000000000000000000000, extraTokensToBurn);
+    violaToken.transferFrom(owner, address(0x0), extraTokensToBurn);
   }
 
   // send ether to the fund collection wallet
@@ -194,6 +196,21 @@ contract ViolaCrowdsale is Ownable {
   function setRate(uint _rate) onlyOwner external {
     require(_rate > 0);
     rate = _rate;
+  }
+
+  function setBonusTokenRateLevelOne(uint _rate) onlyOwner external {
+    require(_rate > 0);
+    bonusTokenRateLevelOne = _rate;
+  }
+
+  function setBonusTokenRateLevelTwo(uint _rate) onlyOwner external {
+    require(_rate > 0);
+    bonusTokenRateLevelTwo = _rate;
+  }
+
+  function setBonusTokenRateLevelThree(uint _rate) onlyOwner external {
+    require(_rate > 0);
+    bonusTokenRateLevelThree = _rate;
   }
 
   function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
@@ -311,11 +328,11 @@ contract ViolaCrowdsale is Ownable {
     bool withinDay3and10 = now > (startTime + 2 days) && now <= (startTime + 10 days);
     bool afterDay10 = now > (startTime + 10 days) && now <= endTime;
     if (withinTwoDay) {
-      return bonusTokenRateByLevels[0];
+      return bonusTokenRateLevelOne;
     } else if (withinDay3and10) {
-      return bonusTokenRateByLevels[1];
+      return bonusTokenRateLevelTwo;
     } else if (afterDay10) {
-      return bonusTokenRateByLevels[2];
+      return bonusTokenRateLevelThree;
     } else {
       return 0;
     }
