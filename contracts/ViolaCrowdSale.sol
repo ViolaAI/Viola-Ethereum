@@ -271,15 +271,6 @@ contract ViolaCrowdsale is Ownable {
    * Getter functions for crowdsale parameters
    * Does not use gas
    */
-   
-
-  //Get max wei an address can buy up to
-  function getAddressCap( address _user ) view public returns(uint) {
-        uint cap = maxBuyCap[_user];
-        if (cap > 0) {
-          return cap;
-        }
-  }
 
   //Checks if token has been sold out
     function tokensHasSoldOut() view internal returns (bool) {
@@ -303,29 +294,12 @@ contract ViolaCrowdsale is Ownable {
     return now > endTime;
   }
 
-  function getKYC(address _kycAddress) external view returns (bool) {
-    require(_kycAddress != address(0));
-    return addressKYC[_kycAddress];
-  }
-
   function getTokensLeft() public view returns (uint) {
     return violaToken.allowance(owner, this).sub(totalTokensAllocated);
   }
 
   function transferTokens (address receiver, uint tokenAmount) internal {
      require(violaToken.transferFrom(owner, receiver, tokenAmount));
-  }
-
-  function getAddressAllocatedTokens(address investor) public view returns(uint) {
-    return tokensAllocated[investor];
-  }
-
-  function getAddressBonusAllocatedTokens(address investor) public view returns(uint) {
-    return bonusTokensAllocated[investor];
-  }
-
-  function getAddressAmtInvested(address investor) public view returns(uint) {
-    return investedSum[investor];
   }
 
   function getTimeBasedBonusRate() public view returns(uint) {
