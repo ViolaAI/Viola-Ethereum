@@ -495,7 +495,7 @@ contract ViolaCrowdsale is Ownable {
       uint256 tokensToAllocate = _amount.add(_bonusAmount);
 
       require(getTokensLeft() >= tokensToAllocate);
-      totalTokensAllocated = totalTokensAllocated.add(_amount);
+      totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
       totalReservedTokenAllocated = totalReservedTokenAllocated.add(tokensToAllocate);
 
       tokensAllocated[_investor] += _amount;
