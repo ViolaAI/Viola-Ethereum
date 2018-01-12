@@ -330,7 +330,7 @@ contract ViolaCrowdsale is Ownable {
   //Used to buy tokens
   function buyTokens(address investor) internal {
     require(status == State.Active);
-    require(msg.value > minWeiToPurchase);
+    require(msg.value >= minWeiToPurchase);
 
     uint weiAmount = msg.value;
 
