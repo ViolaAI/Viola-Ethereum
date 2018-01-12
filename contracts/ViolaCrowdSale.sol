@@ -511,6 +511,7 @@ contract ViolaCrowdsale is Ownable {
       if (status == State.Active) {
         uint256 investorTokens = tokensAllocated[_investor];
         investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
+        totalReservedTokenAllocated = totalReservedTokenAllocated.sub(investorTokens);
         totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
       }
       _clearAddressFromCrowdsale(_investor);
