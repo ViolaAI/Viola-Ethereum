@@ -24,17 +24,18 @@ const State = {
 contract('ViolaCrowdsale', function (accounts) {
 
     const gasAmount = web3.toWei(1, 'ether')
+    const initialTokens = web3.toWei(200, 'ether')
+    const rate = new web3.BigNumber(100)
     const day = 86400
 
     beforeEach(async function () {
         const startTime = web3.eth.getBlock(web3.eth.blockNumber).timestamp + 5 // next day
         const endTime = startTime + (day * 20) // 20 days
-        const rate = new web3.BigNumber(1)
         const wallet = accounts[0]
 
         this.violaTokenInstance = await ViolaToken.new();        
         this.violaCrowdSaleInstance = await ViolaCrowdSale.new();
-        await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, web3.toWei('10', 'ether'))            
+        await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, initialTokens)            
         await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, this.violaTokenInstance.address, wallet);
     })
 
@@ -284,7 +285,7 @@ contract('ViolaCrowdsale', function (accounts) {
     describe('tokens', function () {
         it('should get tokens left', async function() {          
             let tokens = await this.violaCrowdSaleInstance.getTokensLeft.call()
-            tokens.should.be.bignumber.equal(web3.toWei('10', 'ether'))
+            tokens.should.be.bignumber.equal(initialTokens)
         })
     })
 
@@ -296,38 +297,34 @@ contract('ViolaCrowdsale', function (accounts) {
         })
         
         it('should transfer funds to contract', async function () {
-            let contractAddress = this.violaCrowdSaleInstance.address
-            let beforeFund = web3.eth.getBalance(contractAddress)
-            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
-
-            let afterFund = web3.eth.getBalance(contractAddress)
+            let buyAmount = web3.toWei(1, 'ether')
+            let beforeFund = web3.eth.getBalance(this.violaCrowdSaleInstance.address)
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})       
+            let afterFund = web3.eth.getBalance(this.violaCrowdSaleInstance.address)
             let diffBalance = afterFund.minus(beforeFund)
             diffBalance.should.be.bignumber.equal(web3.toWei('1', 'ether'))
         })
 
         it('investor should get tokens', async function () {
-            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
+            var buyAmount = web3.toWei(1, 'ether')
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: buyAmount})
             let tokens = await this.violaCrowdSaleInstance.tokensAllocated(accounts[1])
-            tokens.should.be.bignumber.equal(web3.toWei('1', 'ether'))          
+            let buyAmountInBigNumber = new BigNumber(buyAmount)
+            tokens.should.be.bignumber.equal(buyAmountInBigNumber.mul(rate))          
         })
 
         it('non-whitelisted investor should not be able to buy tokens', async function() {
             expect(() => web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})).to.throw('revert')//should.be.rejectedWith('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('1', 'ether')}).should.be.rejectedWith('revert')
         })
 
         it('should not buy when contract has ended', async function() {
             await this.violaCrowdSaleInstance.endCrowdSale()
             expect(() => web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})).to.throw('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')}).should.be.rejectedWith('revert')            
         })
 
         it('should not buy when contract is paused', async function () {
             await this.violaCrowdSaleInstance.pauseCrowdSale()
             expect(() => web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})).to.throw('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')}).should.be.rejectedWith('revert')                        
         })
 
         it('should not buy when contract is completed', async function () {
@@ -335,49 +332,31 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.burnExtraTokens()
             await this.violaCrowdSaleInstance.completeCrowdSale()
             expect(() => web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})).to.throw('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')}).should.be.rejectedWith('revert')                        
         })
 
         it('should not buy when insufficient token', async function () {
-            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[2], web3.toWei('10', 'ether'))
-            expect(() => web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('10', 'ether')})).to.throw('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('10', 'ether')}).should.be.rejectedWith('revert')
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[2], web3.toWei('3', 'ether'))
+            expect(() => web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('3', 'ether')})).to.throw('revert')
         })
 
         it('should not buy when cap is reached', async function() {
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[2], web3.toWei('10', 'ether'))
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('4', 'ether')})
-            await web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('4', 'ether')})
-            expect(() => web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('4', 'ether')})).to.throw('revert')
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('4', 'ether')}).should.be.rejectedWith('revert')  
+            await web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
+            expect(() => web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})).to.throw('revert')
         })
 
         it('should not buy using fiat when cap reached', async function () {
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[2], web3.toWei('10', 'ether'))
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[2], {from: accounts[2], value: web3.toWei('4', 'ether')})
-            await web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('4', 'ether')})
-            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[2], web3.toWei('6', 'ether'), web3.toWei('1', 'ether')).should.be.rejectedWith('revert')  
-        })
-    })
-
-    describe('refunding', function () {
-        beforeEach(async function() {
-            await increaseTime(10)
-            await this.violaCrowdSaleInstance.startCrowdSale()
-            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[2], web3.toWei('70', 'ether'), web3.toWei('10', 'ether')).should.be.rejectedWith('revert')                          
         })
 
-        it('receiver should get ether', async function() {
-            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
-            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei('1', 'ether')})
-            let amountInvested = await this.violaCrowdSaleInstance.investedSum(accounts[1])
-            let beforeFund = web3.eth.getBalance(accounts[1])  
-
-            await this.violaCrowdSaleInstance.refund(accounts[1])
-            
-            let afterFund = web3.eth.getBalance(accounts[1])
-            let diffBalance = afterFund.minus(beforeFund)
-            diffBalance.should.be.bignumber.equal(amountInvested)
+        it('should update total allocated tokens when purchased externally', async function () {
+            let initialTokens = await this.violaCrowdSaleInstance.totalTokensAllocated.call()
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[2], web3.toWei('70', 'ether'), web3.toWei('10', 'ether'))       
+            let finalTokens = await this.violaCrowdSaleInstance.totalTokensAllocated.call()
+            let diff = finalTokens.minus(initialTokens)
+            diff.should.be.bignumber.equal(web3.toWei(80, 'ether'))
         })
     })
     
@@ -393,7 +372,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
-            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.3, 'ether'))
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.3 * rate, 'ether'))
         })
 
         it('buyer should receive 15% bonus tokens from Day 3', async function() {
@@ -401,7 +380,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
-            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15, 'ether'))
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15 * rate, 'ether'))
         })
 
         it('buyer should receive 15% bonus tokens from Day 11', async function() {
@@ -409,7 +388,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
-            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08, 'ether'))
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08 * rate, 'ether'))
         })
     })
 
@@ -429,7 +408,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.distributeICOTokens(accounts[1])
             let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             let diff = afterTokens.minus(beforeTokens)
-            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
+            diff.should.be.bignumber.equal(web3.toWei(buyAmount * rate, 'ether'))
         })
 
         it('should distribute bonus tokens', async function () {
@@ -473,7 +452,7 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.claimTokens({from:accounts[1]})
             let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
             let diff = afterTokens.minus(beforeTokens)
-            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
+            diff.should.be.bignumber.equal(web3.toWei(buyAmount * rate, 'ether'))
         })
 
         it('investor should claim bonus tokens', async function () {
