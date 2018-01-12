@@ -244,7 +244,7 @@ contract ViolaCrowdsale is Ownable {
     uint256 weiAmount = investedSum[_investor];
 
     if (weiAmount > 0) {
-      refund(_investor);
+      _refund(_investor);
     }
   }
 
@@ -261,7 +261,7 @@ contract ViolaCrowdsale is Ownable {
 
     uint256 weiAmount = investedSum[_kycAddress];
     if (weiAmount > 0) {
-      refund(_kycAddress);
+      _refund(_kycAddress);
     }
   }
 
@@ -354,7 +354,7 @@ contract ViolaCrowdsale is Ownable {
     function allocateToken(address investor, uint weiAmount) internal {
         // calculate token amount to be created
         uint tokens = weiAmount.mul(rate);
-        uint bonusTokens = weiAmount.div(100).mul(getTimeBasedBonusRate());
+        uint bonusTokens = tokens.div(100).mul(getTimeBasedBonusRate());
         
         uint tokensToAllocate = tokens.add(bonusTokens);
         
@@ -380,7 +380,7 @@ contract ViolaCrowdsale is Ownable {
 
 
   //Refund users in case of unsuccessful crowdsale
-  function refund(address _investor) onlyOwner public {
+  function _refund(address _investor) internal {
     require(_investor != address(0));
     
     uint256 weiAmount = investedSum[_investor];
@@ -393,9 +393,7 @@ contract ViolaCrowdsale is Ownable {
       totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
     }
 
-    tokensAllocated[_investor] = 0;
-    bonusTokensAllocated[_investor] = 0;
-    investedSum[_investor] = 0;
+    _clearAddressFromCrowdsale(_investor);
     weiRaised = weiRaised.sub(weiAmount);
 
     _investor.transfer(weiAmount);
@@ -505,6 +503,24 @@ contract ViolaCrowdsale is Ownable {
       
       ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
 
+    }
+
+    function refundExternalPurchase(address _investor) onlyOwner external {
+      require(_investor != address(0));
+
+      if (status == State.Active) {
+        uint256 investorTokens = tokensAllocated[_investor];
+        investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
+        totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
+      }
+      _clearAddressFromCrowdsale(_investor);
+    }
+
+    function _clearAddressFromCrowdsale(address _investor) internal {
+      tokensAllocated[_investor] = 0;
+      bonusTokensAllocated[_investor] = 0;
+      investedSum[_investor] = 0;
+      maxBuyCap[_investor] = 0;
     }
 
     function allocateTopupToken(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
