@@ -36,8 +36,14 @@ contract ViolaCrowdsale is Ownable {
   //Total violaToken an address is allocated
   mapping(address=>uint) public tokensAllocated;
 
+    //Total violaToken an address purchased externally is allocated
+  mapping(address=>uint) public externalTokensAllocated;
+
   //Total bonus violaToken an address is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
+
+    //Total bonus violaToken an address purchased externally is entitled after vesting
+  mapping(address=>uint) public externalBonusTokensAllocated;
 
   //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
@@ -85,6 +91,7 @@ contract ViolaCrowdsale is Ownable {
 
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
   event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
+  event ExternalPurchaseRefunded(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
   event BonusTokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
   event TopupTokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
@@ -315,6 +322,24 @@ contract ViolaCrowdsale is Ownable {
     }
   }
 
+  function getTotalTokensByAddress(address _investor) public view returns(uint) {
+    return tokensAllocated[_investor].add(externalTokensAllocated[_investor]);
+  }
+
+  function getTotalBonusTokensByAddress(address _investor) public view returns(uint) {
+    return bonusTokensAllocated[_investor].add(externalBonusTokensAllocated[_investor]);
+  }
+
+  function _clearTotalTokensByAddress(address _investor) internal {
+    tokensAllocated[_investor] = 0;
+    externalTokensAllocated[_investor] = 0;
+  }
+
+  function _clearTotalBonusTokensByAddress(address _investor) internal {
+    bonusTokensAllocated[_investor] = 0;
+    externalBonusTokensAllocated[_investor] = 0;
+  }
+
 
   /**
    * Functions to handle buy tokens
@@ -406,10 +431,10 @@ contract ViolaCrowdsale is Ownable {
       require(hasEnded());
       require(addressKYC[msg.sender]);
       address tokenReceiver = msg.sender;
-      uint tokensToClaim = tokensAllocated[tokenReceiver];
+      uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      tokensAllocated[tokenReceiver] = 0;
+      _clearTotalTokensByAddress(tokenReceiver);
 
       violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
 
@@ -424,10 +449,10 @@ contract ViolaCrowdsale is Ownable {
       require(addressKYC[msg.sender]);
 
       address tokenReceiver = msg.sender;
-      uint tokensToClaim = bonusTokensAllocated[tokenReceiver];
+      uint tokensToClaim = getTotalBonusTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      bonusTokensAllocated[tokenReceiver] = 0;
+      _clearTotalBonusTokensByAddress(tokenReceiver);
 
       violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
 
@@ -440,10 +465,10 @@ contract ViolaCrowdsale is Ownable {
       require(now >= startTime + bonusVestingPeriod);
 
       address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = bonusTokensAllocated[tokenReceiver];
+      uint tokensToClaim = getTotalBonusTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      bonusTokensAllocated[tokenReceiver] = 0;
+      _clearTotalBonusTokensByAddress(tokenReceiver);
 
       transferTokens(tokenReceiver, tokensToClaim);
 
@@ -456,17 +481,16 @@ contract ViolaCrowdsale is Ownable {
       require(hasEnded());
 
       address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = tokensAllocated[tokenReceiver];
+      uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      tokensAllocated[tokenReceiver] = 0;
+      _clearTotalTokensByAddress(tokenReceiver);
 
       transferTokens(tokenReceiver, tokensToClaim);
 
       TokenDistributed(tokenReceiver,tokensToClaim);
 
     }
-
 
     //For owner to reserve token for presale
     // function reserveTokens(uint _amount) onlyOwner external {
@@ -477,44 +501,68 @@ contract ViolaCrowdsale is Ownable {
 
     // }
 
-    //To distribute tokens not allocated by crowdsale contract
-    function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
-      require(hasEnded());
-      require(_tokenReceiver != address(0));
-      require(_amount > 0);
+    // //To distribute tokens not allocated by crowdsale contract
+    // function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
+    //   require(hasEnded());
+    //   require(_tokenReceiver != address(0));
+    //   require(_amount > 0);
 
-      violaToken.transferFrom(owner, _tokenReceiver, _amount);
+    //   violaToken.transferFrom(owner, _tokenReceiver, _amount);
 
-      TokenDistributed(_tokenReceiver,_amount);
+    //   TokenDistributed(_tokenReceiver,_amount);
 
-    }
+    // }
 
-    //For external purchases via btc/fiat
+    //For external purchases & pre-sale via btc/fiat
     function externalPurchaseTokens(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
       require(_amount > 0);
-      uint256 tokensToAllocate = _amount.add(_bonusAmount);
+      uint256 totalTokensToAllocate = _amount.add(_bonusAmount);
 
-      require(getTokensLeft() >= tokensToAllocate);
-      totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
-      totalReservedTokenAllocated = totalReservedTokenAllocated.add(tokensToAllocate);
+      require(getTokensLeft() >= totalTokensToAllocate);
+      totalTokensAllocated = totalTokensAllocated.add(totalTokensToAllocate);
+      totalReservedTokenAllocated = totalReservedTokenAllocated.add(totalTokensToAllocate);
 
-      tokensAllocated[_investor] += _amount;
-      bonusTokensAllocated[_investor] += _bonusAmount;
+      externalTokensAllocated[_investor] += _amount;
+      externalBonusTokensAllocated[_investor] += _bonusAmount;
+
+      assert(externalTokensAllocated[_investor] > 0);
+      assert(externalBonusTokensAllocated[_investor] >= 0);
       
       ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
 
     }
 
-    function refundExternalPurchase(address _investor) onlyOwner external {
+    function refundAllExternalPurchase(address _investor) onlyOwner external {
       require(_investor != address(0));
+      require(externalTokensAllocated[_investor] > 0);
 
-      if (status == State.Active) {
-        uint256 investorTokens = tokensAllocated[_investor];
-        investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
-        totalReservedTokenAllocated = totalReservedTokenAllocated.sub(investorTokens);
-        totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
-      }
-      _clearAddressFromCrowdsale(_investor);
+      uint externalTokens = externalTokensAllocated[_investor];
+      uint externalBonusTokens = externalBonusTokensAllocated[_investor];
+
+      externalTokensAllocated[_investor] = 0;
+      externalBonusTokensAllocated[_investor] = 0;
+
+      uint totalInvestorTokens = externalTokens.add(externalBonusTokens);
+
+      totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalInvestorTokens);
+      totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
+
+      ExternalPurchaseRefunded(_investor,externalTokens,externalBonusTokens);
+    }
+
+    function refundExternalPurchase(address _investor, uint _amountToRefund, uint _bonusAmountToRefund) onlyOwner external {
+      require(_investor != address(0));
+      require(externalTokensAllocated[_investor] >= _amountToRefund);
+      require(externalBonusTokensAllocated[_investor] >= _bonusAmountToRefund);
+
+      uint totalTokensToRefund = _amountToRefund.add(_bonusAmountToRefund);
+      externalTokensAllocated[_investor] = externalTokensAllocated[_investor].sub(_amountToRefund);
+      externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].sub(_bonusAmountToRefund);
+
+      totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalTokensToRefund);
+      totalTokensAllocated = totalTokensAllocated.sub(totalTokensToRefund);
+
+      ExternalPurchaseRefunded(_investor,_amountToRefund,_bonusAmountToRefund);
     }
 
     function _clearAddressFromCrowdsale(address _investor) internal {
