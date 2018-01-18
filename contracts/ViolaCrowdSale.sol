@@ -190,10 +190,9 @@ contract ViolaCrowdsale is Ownable {
 
   function partialForwardFunds(uint _amountToTransfer) onlyOwner external {
     require(status == State.Ended);
-    uint amountLockedForRefund = this.balance.sub(_getUnapprovedAddressFunds());
-    require(this.balance > amountLockedForRefund);
+    uint amountAllowedForRefund = this.balance.sub(_getUnapprovedAddressFunds());
+    require(_amountToTransfer < amountAllowedForRefund);
     wallet.transfer(_amountToTransfer);
-
   }
 
   function _getUnapprovedAddressFunds() internal view returns (uint) {
@@ -201,9 +200,9 @@ contract ViolaCrowdsale is Ownable {
     for (uint counter = 0; counter < registeredAddress.length; counter ++) {
       address currAddress = registeredAddress[counter];
       if (!addressKYC[currAddress]) {
-      totalApprovedAmt = totalApprovedAmt.add(investedSum[currAddress]);
+        totalApprovedAmt = totalApprovedAmt.add(investedSum[currAddress]);
       }
-        }
+    }
     return totalApprovedAmt;
   }
 
