@@ -38,6 +38,18 @@ Migrate to Rinkeby
 truffle migrate --network rinkeby
 ```
 
+## Compiling with Remix
+To compile in Remix, we first need to flatten the contract codes into one file.
+We can use the following program to help us with that.
+
+```
+clone git@github.com:poanetwork/oracles-combine-solidity.git
+cd /oracles-combine-solidity
+npm install
+npm start <path to Viola project>/contracts/ViolaCrowdsale.sol
+```
+The output file can be found in /.out folder
+
 ## Built With
 
 - [Zeppelin-Solidity](https://openzeppelin.org/) version 1.4.0
