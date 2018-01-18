@@ -308,7 +308,7 @@ contract('ViolaCrowdsale', function (accounts) {
         it('using fiat and eth should tally total tokens', async function () {
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
             await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[1], web3.toWei('1', 'ether'), web3.toWei('1', 'ether'))
-            let totalTokens = await this.violaCrowdSaleInstance.getTotalTokensByAddress(accounts[1])
+            let totalTokens = await this.violaCrowdSaleInstance.getTotalNormalTokensByAddress(accounts[1])
             let expectedTokens = new BigNumber(web3.toWei('1', 'ether')).mul(rate).add(web3.toWei(1, 'ether'))
             totalTokens.should.be.bignumber.equal(expectedTokens)
         })
