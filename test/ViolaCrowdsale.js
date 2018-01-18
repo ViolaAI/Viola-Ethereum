@@ -82,7 +82,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe('ending crowdsale', function () {
+    describe.only('ending crowdsale', function () {
         it('should end crowdsale from Active status', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
@@ -112,6 +112,38 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.burnExtraTokens()            
             await this.violaCrowdSaleInstance.completeCrowdSale()
             await this.violaCrowdSaleInstance.endCrowdSale().should.be.rejectedWith('revert')
+        })
+
+        it('should allow owner to transfer eth partially', async function () {
+            await increaseTime(10)
+            let transferAmount = new BigNumber(web3.toWei(0.5, 'ether'))
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.approveKYC(accounts[1])
+            await this.violaCrowdSaleInstance.partialForwardFunds(transferAmount)
+        })
+
+        it('should not allow owner to transfer eth more than non kyc refund funds', async function () {
+            await increaseTime(10)
+            let transferAmount = new BigNumber(web3.toWei(0.5, 'ether'))
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.partialForwardFunds(transferAmount).should.be.rejectedWith('revert')
+        })
+
+        it('should not allow owner to transfer eth more than available fund', async function () {
+            await increaseTime(10)
+            let transferAmount = new BigNumber(web3.toWei(3, 'ether'))
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.approveKYC(accounts[1])
+            await this.violaCrowdSaleInstance.partialForwardFunds(transferAmount).should.be.rejectedWith('revert')
         })
     })
 
