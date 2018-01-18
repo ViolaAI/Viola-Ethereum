@@ -305,6 +305,23 @@ contract('ViolaCrowdsale', function (accounts) {
             diffBalance.should.be.bignumber.equal(web3.toWei('1', 'ether'))
         })
 
+        it('using fiat and eth should tally total tokens', async function () {
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[1], web3.toWei('1', 'ether'), web3.toWei('1', 'ether'))
+            let totalTokens = await this.violaCrowdSaleInstance.getTotalTokensByAddress(accounts[1])
+            let expectedTokens = new BigNumber(web3.toWei('1', 'ether')).mul(rate).add(web3.toWei(1, 'ether'))
+            totalTokens.should.be.bignumber.equal(expectedTokens)
+        })
+
+        it('using fiat and eth should tally total bonus tokens', async function () {
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei('1', 'ether')})
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[1], web3.toWei('1', 'ether'), web3.toWei('1', 'ether'))
+            let totalTokens = await this.violaCrowdSaleInstance.getTotalBonusTokensByAddress(accounts[1])
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate()
+            let expectedTokens = new BigNumber(web3.toWei('1', 'ether')).mul(bonusRate).add(web3.toWei(1, 'ether'))
+            totalTokens.should.be.bignumber.equal(expectedTokens)
+        })
+
         it('investor should get tokens', async function () {
             var buyAmount = web3.toWei(1, 'ether')
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: buyAmount})
@@ -424,14 +441,6 @@ contract('ViolaCrowdsale', function (accounts) {
         it('should not distrubte bonus tokens before vesting period', async function () {
             await increaseTime(day * 20)         
             await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[1]).should.be.rejectedWith('revert')
-        })
-
-        it('should distribute presale tokens', async function () {
-            let beforeTokens = await this.violaTokenInstance.balanceOf(accounts[1])
-            await this.violaCrowdSaleInstance.distributePresaleTokens(accounts[1], web3.toWei(buyAmount, 'ether'))
-            let afterTokens = await this.violaTokenInstance.balanceOf(accounts[1])
-            let diff = afterTokens.minus(beforeTokens)
-            diff.should.be.bignumber.equal(web3.toWei(buyAmount, 'ether'))
         })
     })
 
