@@ -42,8 +42,12 @@ contract ViolaCrowdsale is Ownable {
   //Total bonus violaToken an address is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
 
-    //Total bonus violaToken an address purchased externally is entitled after vesting
+  //Total bonus violaToken an address purchased externally is entitled after vesting
   mapping(address=>uint) public externalBonusTokensAllocated;
+
+  //Store addresses that has registered for crowdsale before (pushed via setWhitelist)
+  //Does not mean whitelisted as it can be revoked. Just to track address for loop
+  address[] public registeredAddress;
 
   //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
@@ -71,9 +75,6 @@ contract ViolaCrowdsale is Ownable {
   uint public bonusTokenRateLevelOne = 30;
   uint public bonusTokenRateLevelTwo = 15;
   uint public bonusTokenRateLevelThree = 8;
-
-  // amount of raised money in wei
-  uint256 public weiRaised;
 
   //Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
@@ -170,7 +171,7 @@ contract ViolaCrowdsale is Ownable {
     require(violaToken.allowance(owner, this) == 0);
     status = State.Completed;
 
-    forwardFunds();
+    _forwardFunds();
 
     assert(this.balance == 0);
   }
@@ -183,8 +184,27 @@ contract ViolaCrowdsale is Ownable {
   }
 
   // send ether to the fund collection wallet
-  function forwardFunds() internal {
-    wallet.transfer(weiRaised);
+  function _forwardFunds() internal {
+    wallet.transfer(this.balance);
+  }
+
+  function partialForwardFunds(uint _amountToTransfer) onlyOwner external {
+    require(status == State.Ended);
+    uint amountLockedForRefund = this.balance.sub(_getUnapprovedAddressFunds());
+    require(this.balance > amountLockedForRefund);
+    wallet.transfer(_amountToTransfer);
+
+  }
+
+  function _getUnapprovedAddressFunds() internal view returns (uint) {
+    uint totalApprovedAmt = 0;
+    for (uint counter = 0; counter < registeredAddress.length; counter ++) {
+      address currAddress = registeredAddress[counter];
+      if (!addressKYC[currAddress]) {
+      totalApprovedAmt = totalApprovedAmt.add(investedSum[currAddress]);
+      }
+        }
+    return totalApprovedAmt;
   }
 
   /**
@@ -240,6 +260,7 @@ contract ViolaCrowdsale is Ownable {
         require(_cap > 0);
         require(_investor != address(0));
         maxBuyCap[_investor] = _cap;
+        registeredAddress.push(_investor);
         //add event
     }
 
@@ -323,6 +344,10 @@ contract ViolaCrowdsale is Ownable {
   }
 
   function getTotalTokensByAddress(address _investor) public view returns(uint) {
+    return getTotalNormalTokensByAddress(_investor).add(getTotalBonusTokensByAddress(_investor));
+  }
+
+  function getTotalNormalTokensByAddress(address _investor) public view returns(uint) {
     return tokensAllocated[_investor].add(externalTokensAllocated[_investor]);
   }
 
@@ -330,7 +355,7 @@ contract ViolaCrowdsale is Ownable {
     return bonusTokensAllocated[_investor].add(externalBonusTokensAllocated[_investor]);
   }
 
-  function _clearTotalTokensByAddress(address _investor) internal {
+  function _clearTotalNormalTokensByAddress(address _investor) internal {
     tokensAllocated[_investor] = 0;
     externalTokensAllocated[_investor] = 0;
   }
@@ -362,9 +387,7 @@ contract ViolaCrowdsale is Ownable {
     checkCapAndRecord(investor,weiAmount);
 
     allocateToken(investor,weiAmount);
-
-    // update state
-    weiRaised = weiRaised.add(weiAmount);
+    
   }
 
   //Internal call to check max user cap
@@ -406,24 +429,47 @@ contract ViolaCrowdsale is Ownable {
 
   //Refund users in case of unsuccessful crowdsale
   function _refund(address _investor) internal {
-    require(_investor != address(0));
-    
-    uint256 weiAmount = investedSum[_investor];
-    require(weiAmount > 0);
+    uint256 investedAmt = investedSum[_investor];
+    require(investedAmt > 0);
+
+  
+      uint totalInvestorTokens = tokensAllocated[_investor].add(bonusTokensAllocated[_investor]);
 
     if (status == State.Active) {
-      uint256 investorTokens = tokensAllocated[_investor];
-      investorTokens = investorTokens.add(bonusTokensAllocated[_investor]);
-
-      totalTokensAllocated = totalTokensAllocated.sub(investorTokens);
+      //Refunded tokens go back to sale pool
+      totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
     }
 
     _clearAddressFromCrowdsale(_investor);
-    weiRaised = weiRaised.sub(weiAmount);
 
-    _investor.transfer(weiAmount);
+    _investor.transfer(investedAmt);
 
-    Refunded(_investor, weiAmount);
+    Refunded(_investor, investedAmt);
+  }
+
+    //Partial refund users
+  function refundPartial(address _investor, uint _refundAmt, uint _tokenAmt, uint _bonusTokenAmt) onlyOwner external {
+
+    uint investedAmt = investedSum[_investor];
+    require(investedAmt > _refundAmt);
+    require(tokensAllocated[_investor] > _tokenAmt);
+    require(bonusTokensAllocated[_investor] > _bonusTokenAmt);
+
+    investedSum[_investor] = investedSum[_investor].sub(_refundAmt);
+    tokensAllocated[_investor] = tokensAllocated[_investor].sub(_tokenAmt);
+    bonusTokensAllocated[_investor] = bonusTokensAllocated[_investor].sub(_bonusTokenAmt);
+
+
+    uint totalRefundTokens = _tokenAmt.add(_bonusTokenAmt);
+
+    if (status == State.Active) {
+      //Refunded tokens go back to sale pool
+      totalTokensAllocated = totalTokensAllocated.sub(totalRefundTokens);
+    }
+
+    _investor.transfer(_refundAmt);
+
+    Refunded(_investor, _refundAmt);
   }
 
   //Used by investor to claim token
@@ -434,7 +480,7 @@ contract ViolaCrowdsale is Ownable {
       uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      _clearTotalTokensByAddress(tokenReceiver);
+      _clearTotalNormalTokensByAddress(tokenReceiver);
 
       violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
 
@@ -484,7 +530,7 @@ contract ViolaCrowdsale is Ownable {
       uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
-      _clearTotalTokensByAddress(tokenReceiver);
+      _clearTotalNormalTokensByAddress(tokenReceiver);
 
       transferTokens(tokenReceiver, tokensToClaim);
 
