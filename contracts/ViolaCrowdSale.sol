@@ -477,7 +477,7 @@ contract ViolaCrowdsale is Ownable {
       require(hasEnded());
       require(addressKYC[msg.sender]);
       address tokenReceiver = msg.sender;
-      uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
+      uint tokensToClaim = getTotalNormalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
       _clearTotalNormalTokensByAddress(tokenReceiver);
