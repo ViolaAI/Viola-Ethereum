@@ -527,7 +527,7 @@ contract ViolaCrowdsale is Ownable {
       require(hasEnded());
 
       address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = getTotalTokensByAddress(tokenReceiver);
+      uint tokensToClaim = getTotalNormalTokensByAddress(tokenReceiver);
 
       require(tokensToClaim > 0);
       _clearTotalNormalTokensByAddress(tokenReceiver);
