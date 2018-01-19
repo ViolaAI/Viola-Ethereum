@@ -20,14 +20,12 @@ Install dependencies
 npm install
 ```
 ## Test
-Open a new terminal and run ganache-cli
-```
-ganache-cli
-```
 In the project folder, run the following command
 ```
-truffle test
+./scripts/test.sh
 ```
+Remember to make shell script executable by running `chmod u+x ./scripts/test.sh`
+
 ## Deployment to Rinkeby
 Compile contracts
 ```
