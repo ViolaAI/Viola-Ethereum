@@ -46,7 +46,7 @@ cd /oracles-combine-solidity
 npm install
 npm start <path to Viola project>/contracts/ViolaCrowdsale.sol
 ```
-The output file can be found in /.out folder
+The output file `ViolaCrowdsale_flat.sol` can be found in `out` folder
 
 ## Built With
 
