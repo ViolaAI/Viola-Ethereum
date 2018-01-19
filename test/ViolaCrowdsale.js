@@ -82,7 +82,7 @@ contract('ViolaCrowdsale', function (accounts) {
         })
     })
 
-    describe.only('ending crowdsale', function () {
+    describe('ending crowdsale', function () {
         it('should end crowdsale from Active status', async function () {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdSale()
@@ -510,6 +510,71 @@ contract('ViolaCrowdsale', function (accounts) {
         it('investor should not claim bonus tokens before vesting period', async function () {
             await increaseTime(day * 20)         
             await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[1]}).should.be.rejectedWith('revert')
+        })
+    })
+
+    describe('refunding partially', function () {
+        let buyAmount = 1;
+        beforeEach(async function() {
+            await increaseTime(10)
+            await this.violaCrowdSaleInstance.startCrowdSale()
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
+        })
+
+        it('should not have refund amount more than invested amount', async function () {
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], web3.toWei(2, 'ether'), web3.toWei(1, 'ether'), web3.toWei(1, 'ether')).should.be.rejectedWith('revert')
+        })
+
+        it('should not have refund tokens more than allocated tokens', async function () {
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], web3.toWei(0.5, 'ether'), web3.toWei(101, 'ether'), web3.toWei(1, 'ether')).should.be.rejectedWith('revert')
+        })
+
+        it('should not have refund bonus tokens more than allocated bonus tokens', async function () {
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], web3.toWei(0.5, 'ether'), web3.toWei(1, 'ether'), web3.toWei(31, 'ether')).should.be.rejectedWith('revert')
+        })
+
+        it('should reduce the invested sum by the refund amount', async function () {
+            let refundAmount = web3.toWei(0.5, 'ether')
+            let initialInvestedSum = await this.violaCrowdSaleInstance.investedSum(accounts[1])
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], refundAmount, web3.toWei(1, 'ether'), web3.toWei(1, 'ether'))
+            let finalInvestedSum = await this.violaCrowdSaleInstance.investedSum(accounts[1])
+            let diff = initialInvestedSum.minus(finalInvestedSum)
+            diff.should.be.bignumber.equal(refundAmount)
+        })
+
+        it('should reduce tokens allocated sum by the refund token amount', async function () {
+            let refundAmount = web3.toWei(0.5, 'ether')
+            let initialTokensAllocated = await this.violaCrowdSaleInstance.tokensAllocated(accounts[1])
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], refundAmount, refundAmount, web3.toWei(1, 'ether'))
+            let finalTokensAllocated = await this.violaCrowdSaleInstance.tokensAllocated(accounts[1])
+            let diff = initialTokensAllocated.minus(finalTokensAllocated)           
+            diff.should.be.bignumber.equal(refundAmount)
+        })
+
+        it('should reduce bonus tokens allocated sum by the refund bonus token amount', async function () {
+            let refundAmount = web3.toWei(0.5, 'ether')
+            let initialTokensAllocated = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], refundAmount, refundAmount, refundAmount)
+            let finalTokensAllocated = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
+            let diff = initialTokensAllocated.minus(finalTokensAllocated)           
+            diff.should.be.bignumber.equal(refundAmount)
+        })
+
+        it('should have investor receive the refund amount', async function () {
+            let refundAmount = web3.toWei(0.5, 'ether')
+            let initialBalance = web3.eth.getBalance(accounts[1])
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], refundAmount, refundAmount, refundAmount)
+            let finalBalance = web3.eth.getBalance(accounts[1])
+            let diff = finalBalance.minus(initialBalance)           
+            diff.should.be.bignumber.equal(refundAmount)
+        })
+
+        it('should not pass if token distribution has taken place', async function () {
+            await this.violaCrowdSaleInstance.endCrowdSale()
+            await this.violaCrowdSaleInstance.distributeICOTokens(accounts[1])
+            let refundAmount = web3.toWei(0.5, 'ether')
+            await this.violaCrowdSaleInstance.refundPartial(accounts[1], refundAmount, web3.toWei(-1, 'ether'), web3.toWei(-1, 'ether')).should.be.rejectedWith('revert')
         })
     })
 })
