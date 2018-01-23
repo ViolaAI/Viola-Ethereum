@@ -225,19 +225,19 @@ contract ViolaCrowdsale is Ownable {
   }
 
   function setBonusTokenRateLevelOne(uint _rate) onlyOwner external {
-    require(_rate > 0);
+    //require(_rate > 0);
     bonusTokenRateLevelOne = _rate;
     BonusRateChanged();
   }
 
   function setBonusTokenRateLevelTwo(uint _rate) onlyOwner external {
-    require(_rate > 0);
+    //require(_rate > 0);
     bonusTokenRateLevelTwo = _rate;
     BonusRateChanged();
   }
 
   function setBonusTokenRateLevelThree(uint _rate) onlyOwner external {
-    require(_rate > 0);
+    //require(_rate > 0);
     bonusTokenRateLevelThree = _rate;
     BonusRateChanged();
   }
