@@ -58,7 +58,7 @@ contract ViolaCrowdsale is Ownable {
   /**
    * Note all values are calculated in wei(uint256) including token amount
    * 1 ether = 1000000000000000000 wei
-   * 1 viola = 1000000000000000000 violawei
+   * 1 viola = 1000000000000000000 vi lawei
    */
 
 
@@ -75,6 +75,7 @@ contract ViolaCrowdsale is Ownable {
   uint public bonusTokenRateLevelOne = 30;
   uint public bonusTokenRateLevelTwo = 15;
   uint public bonusTokenRateLevelThree = 8;
+  uint public bonusTokenRateLevelFour = 4;
 
   //Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
@@ -241,6 +242,11 @@ contract ViolaCrowdsale is Ownable {
     bonusTokenRateLevelThree = _rate;
     BonusRateChanged();
   }
+  function setBonusTokenRateLevelFour(uint _rate) onlyOwner external {
+    //require(_rate > 0);
+    bonusTokenRateLevelFour = _rate;
+    BonusRateChanged();
+  }
 
   function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
     minWeiToPurchase = _minWeiToPurchase;
@@ -328,15 +334,18 @@ contract ViolaCrowdsale is Ownable {
   }
 
   function getTimeBasedBonusRate() public view returns(uint) {
-    bool withinTwoDay = now >= startTime && now <= (startTime + 2 days);
-    bool withinDay3and10 = now > (startTime + 2 days) && now <= (startTime + 10 days);
-    bool afterDay10 = now > (startTime + 10 days) && now <= endTime;
-    if (withinTwoDay) {
+    bool bonusDuration1 = now >= startTime && now <= (startTime + 1 days);  //First 24hr
+    bool bonusDuration2 = now > (startTime + 1 days) && now <= (startTime + 3 days);//Next 48 hr
+    bool bonusDuration3 = now > (startTime + 3 days) && now <= (startTime + 10 days);//4th to 10th day
+    bool bonusDuration4 = now > (startTime + 10 days) && now <= endTime;//11th day onwards
+    if (bonusDuration1) {
       return bonusTokenRateLevelOne;
-    } else if (withinDay3and10) {
+    } else if (bonusDuration2) {
       return bonusTokenRateLevelTwo;
-    } else if (afterDay10) {
+    } else if (bonusDuration3) {
       return bonusTokenRateLevelThree;
+    } else if (bonusDuration4) {
+      return bonusTokenRateLevelFour;
     } else {
       return 0;
     }

@@ -298,6 +298,12 @@ contract('ViolaCrowdsale', function (accounts) {
             let newBonusTokenRate = await this.violaCrowdSaleInstance.bonusTokenRateLevelThree.call()
             newBonusTokenRate.should.be.bignumber.equal(bonusTokenRate)
         })
+
+        it('should update bonus rate for level four', async function() {
+            await this.violaCrowdSaleInstance.setBonusTokenRateLevelFour(bonusTokenRate)
+            let newBonusTokenRate = await this.violaCrowdSaleInstance.bonusTokenRateLevelFour.call()
+            newBonusTokenRate.should.be.bignumber.equal(bonusTokenRate)
+        })
     })
   
     describe('bonus rate', function(){
@@ -311,34 +317,45 @@ contract('ViolaCrowdsale', function (accounts) {
             await bonusRate.should.be.bignumber.equal(new BigNumber(30))
         })
 
-        it('at the end of Day 2 should be 30', async function(){
-            await increaseTime(day * 2 - 10)
+        it('at the end of Day 1 should be 30', async function(){
+            await increaseTime(day * 1 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(30))
         })
 
-        it('at the beginning of Day 3 should be 15', async function(){
-            await increaseTime(day * 2 + 1)
+        it('at the beginning of Day 2 should be 15', async function(){
+            await increaseTime(day * 1 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
         })
 
-        it('at the end of Day 10 should be 15', async function(){
+        it('at the end of Day 3 should be 15', async function(){
+            await increaseTime(day * 3 - 10)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(15))
+        })
+        it('at the beginning of Day 4 should be 8', async function(){
+            await increaseTime(day * 3 + 1)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
+        })
+
+        it('at the end of Day 10 should be 8', async function(){
             await increaseTime(day * 10 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(15))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
         })
         
-        it('at the beginning of Day 11 should be 8', async function(){
+        it('at the beginning of Day 11 should be 4', async function(){
             await increaseTime(day * 10 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(4))
         })
 
-        it('at the end should be 8', async function(){
+        it('at the end should be 4', async function(){
             await increaseTime(day * 20 - 10) // End after 20 days
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(8))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(4))
         })
 
         it('after ending of ICO should be 0', async function(){
@@ -481,27 +498,35 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
         })
 
-        it('buyer should receive 30% bonus tokens within 2 first days', async function() {
+        it('buyer should receive 30% bonus tokens within first days', async function() {
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.3 * rate, 'ether'))
         })
 
-        it('buyer should receive 15% bonus tokens from Day 3', async function() {
-            await increaseTime(day * 2 + 1)
+        it('buyer should receive 15% bonus tokens from Day 2', async function() {
+            await increaseTime(day * 1 + 1)
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15 * rate, 'ether'))
         })
 
-        it('buyer should receive 15% bonus tokens from Day 11', async function() {
-            await increaseTime(day * 10 + 1)
+        it('buyer should receive 8% bonus tokens from Day 4', async function() {
+            await increaseTime(day * 4 + 1)
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.08 * rate, 'ether'))
+        })
+
+        it('buyer should receive 4% bonus tokens from Day 11', async function() {
+            await increaseTime(day * 10 + 1)
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
+            // await this.violaCrowdSaleInstance.buyTokens(accounts[1], {from: accounts[1], value: web3.toWei(buyAmount, 'ether')})
+            let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.04 * rate, 'ether'))
         })
     })
 
@@ -744,6 +769,112 @@ contract('ViolaCrowdsale', function (accounts) {
             
             //Check remainding tokens
             tokensAllocated.should.be.bignumber.equal(shouldHaveTokens)
+        })
+        it ('Multiple purchase', async function () {
+            let initialBalance = web3.eth.getBalance(accounts[1])
+            let initalTokensLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            let currRate = 10
+            await this.violaCrowdSaleInstance.setRate(currRate)
+
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[1], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[2], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[3], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[4], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[5], web3.toWei('2', 'ether'))
+            await this.violaCrowdSaleInstance.setWhitelistAddress(accounts[6], web3.toWei('2', 'ether'))
+
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[1], web3.toWei(10, 'ether'), web3.toWei(7, 'ether'))
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[2], web3.toWei(10, 'ether'), web3.toWei(7, 'ether'))
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[3], web3.toWei(10, 'ether'), web3.toWei(7, 'ether'))
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[4], web3.toWei(10, 'ether'), web3.toWei(7, 'ether'))
+            await this.violaCrowdSaleInstance.externalPurchaseTokens(accounts[5], web3.toWei(10, 'ether'), web3.toWei(7, 'ether'))
+
+            //Check tokens left value is reduced correctly via external purchase
+            let afterExternalTokenPurchase = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            let result = initalTokensLeft.minus(web3.toWei(17 * 5, 'ether'))
+            assert.equal(afterExternalTokenPurchase.valueOf(), result.valueOf(),'External tokens did not deduct correctly')
+
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await web3.eth.sendTransaction({from: accounts[2], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await web3.eth.sendTransaction({from: accounts[3], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')}) 
+            await web3.eth.sendTransaction({from: accounts[4], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')}) 
+            await web3.eth.sendTransaction({from: accounts[5], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+            await web3.eth.sendTransaction({from: accounts[6], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(1, 'ether')})
+
+            //Check tokens left value is reduced correctly via eth purchase
+            let currentTokenLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            result = result.minus(web3.toWei(1.3 * currRate * 6, 'ether'))
+            assert.equal(currentTokenLeft.valueOf(), result.valueOf(),'get tokens left has not reduced correctly')
+
+            //Check token balance after refund external purchase is correct
+            let beforeCheckNormalToken = await this.violaCrowdSaleInstance.getTotalNormalTokensByAddress(accounts[1])
+            let beforeCheckBonusToken = await this.violaCrowdSaleInstance.getTotalBonusTokensByAddress(accounts[1])
+            await this.violaCrowdSaleInstance.refundExternalPurchase(accounts[1], web3.toWei(7, 'ether'), web3.toWei(5, 'ether'))
+
+            //Check bonus token balance after refund external purchase is correct
+            let toCheck = await this.violaCrowdSaleInstance.getTotalNormalTokensByAddress(accounts[1])
+            assert.equal(toCheck.valueOf(), beforeCheckNormalToken.sub( web3.toWei(7, 'ether')).valueOf(),'Refund external purchase normal token check failed')
+            toCheck = await this.violaCrowdSaleInstance.getTotalBonusTokensByAddress(accounts[1])
+            assert.equal(toCheck.valueOf(), beforeCheckBonusToken.sub( web3.toWei(5, 'ether')).valueOf(),'Refund external purchase bonus token check failed')
+
+            //Check current token left value again after partial external refunds
+            currentTokenLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            result = result.add(web3.toWei(12, 'ether'))
+            assert.equal(currentTokenLeft.valueOf(), result.valueOf(),'Tokens left not added correctly')
+
+            await this.violaCrowdSaleInstance.refundAllExternalPurchase(accounts[2])
+
+            //Check current token left value again after external refunds
+            currentTokenLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            result = result.add(web3.toWei(17, 'ether'))
+            assert.equal(currentTokenLeft.valueOf(), result.valueOf(),'Tokens left not added correctly')
+            
+            await this.violaCrowdSaleInstance.refundPartial(accounts[3], web3.toWei(0.5, 'ether'), web3.toWei(5, 'ether'), web3.toWei(1, 'ether'))
+
+            //Check current token left value again after partial refunds
+            currentTokenLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            result = result.add(web3.toWei(6, 'ether'))
+            assert.equal(currentTokenLeft.valueOf(), result.valueOf(),'Tokens left not subtracted correctly')
+
+            await this.violaCrowdSaleInstance.removeWhitelistAddress(accounts[4])
+
+            //Check current token left value again after removing whitelist refunds
+            currentTokenLeft = await this.violaCrowdSaleInstance.getTokensLeft.call()
+            result = result.add(web3.toWei(13, 'ether'))
+            assert.equal(currentTokenLeft.valueOf(), result.valueOf(),'Tokens left not subtracted correctly')            
+            
+            await this.violaCrowdSaleInstance.endCrowdSale()
+
+            await this.violaCrowdSaleInstance.approveKYC(accounts[1])
+            await this.violaCrowdSaleInstance.approveKYC(accounts[2])
+            await this.violaCrowdSaleInstance.approveKYC(accounts[3])
+            await this.violaCrowdSaleInstance.approveKYC(accounts[4])
+
+            await this.violaCrowdSaleInstance.approveKYC(accounts[5])
+            await this.violaCrowdSaleInstance.revokeKYC(accounts[5])
+
+            await this.violaCrowdSaleInstance.approveKYC(accounts[6])
+            await this.violaCrowdSaleInstance.revokeKYC(accounts[6])
+            toCheck = await this.violaCrowdSaleInstance.getTotalTokensByAddress(accounts[6])
+            assert.equal(toCheck.valueOf(), 0,'Revoke KYC did not clear tokens left')         
+
+            await this.violaCrowdSaleInstance.partialForwardFunds(web3.toWei(1, 'ether'));
+            
+            await this.violaCrowdSaleInstance.claimTokens({from:accounts[1]})
+            await this.violaCrowdSaleInstance.claimTokens({from:accounts[2]})
+            await this.violaCrowdSaleInstance.claimTokens({from:accounts[3]})
+
+            await this.violaCrowdSaleInstance.distributeICOTokens(accounts[4]);
+            //await this.violaCrowdSaleInstance.claimTokens({from:accounts[5]})
+
+            await increaseTime(60 * day)
+            await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[1]})
+            await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[2]})
+            await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[3]})
+            //await this.violaCrowdSaleInstance.claimBonusTokens({from:accounts[5]})
+            await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[4]);
+            //await this.violaCrowdSaleInstance.distributeBonusTokens(accounts[5]);
+
         })
     })
 })
