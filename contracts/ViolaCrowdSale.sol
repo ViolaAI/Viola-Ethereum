@@ -104,12 +104,8 @@ contract ViolaCrowdsale is Ownable {
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
   //Set inital arguments of the crowdsale
-<<<<<<< HEAD
   function initialiseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
-=======
-  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
     require(status == State.Deployed);
->>>>>>> 16e9f4fd0d96954f84bd357f4723457d3927ebaf
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
@@ -416,7 +412,7 @@ contract ViolaCrowdsale is Ownable {
     function allocateToken(address investor, uint weiAmount) internal {
         // calculate token amount to be created
         uint tokens = weiAmount.mul(rate);
-        uint bonusTokens = tokens.div(100).mul(getTimeBasedBonusRate());
+        uint bonusTokens = tokens.mul(getTimeBasedBonusRate()).div(100);
         
         uint tokensToAllocate = tokens.add(bonusTokens);
         
