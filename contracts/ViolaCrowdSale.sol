@@ -104,7 +104,7 @@ contract ViolaCrowdsale is Ownable {
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
   //Set inital arguments of the crowdsale
-  function initaliseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
+  function initialiseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
     require(_startTime >= now);
     require(_endTime >= _startTime);
     require(_rate > 0);
@@ -131,7 +131,7 @@ contract ViolaCrowdsale is Ownable {
 
   // To be called by Ethereum alarm clock or anyone
   //Can only be called successfully when time is valid
-  function startCrowdSale() external {
+  function startCrowdsale() external {
     require(withinPeriod());
     require(violaToken != address(0));
     require(getTokensLeft() > 0);
@@ -144,30 +144,31 @@ contract ViolaCrowdsale is Ownable {
 
   //To be called by owner or contract
   //Ends the crowdsale when tokens are sold out
-  function endCrowdSale() public {
+  function endCrowdsale() public {
     if (!tokensHasSoldOut()) {
       require(msg.sender == owner);
     }
     require(status == State.Active);
+
 
     status = State.Ended;
 
     CrowdsaleEnded();
   }
   //Emergency pause
-  function pauseCrowdSale() onlyOwner external {
+  function pauseCrowdsale() onlyOwner external {
     require(status == State.Active);
 
     status = State.Paused;
   }
   //Resume paused crowdsale
-  function unpauseCrowdSale() onlyOwner external {
+  function unpauseCrowdsale() onlyOwner external {
     require(status == State.Paused);
 
     status = State.Active;
   }
 
-  function completeCrowdSale() onlyOwner external {
+  function completeCrowdsale() onlyOwner external {
     require(hasEnded());
     require(violaToken.allowance(owner, this) == 0);
     status = State.Completed;
@@ -421,7 +422,7 @@ contract ViolaCrowdsale is Ownable {
         bonusTokensAllocated[investor] += bonusTokens;
 
         if (tokensHasSoldOut()) {
-          endCrowdSale();
+          endCrowdsale();
         }
         TokenPurchase(investor, weiAmount, tokens, bonusTokens);
   }
