@@ -49,6 +49,9 @@ contract ViolaCrowdsale is Ownable {
   //Does not mean whitelisted as it can be revoked. Just to track address for loop
   address[] public registeredAddress;
 
+  //Total amount not approved for withdrawal
+  uint256 public totalApprovedAmount = 0;
+
   //Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
@@ -193,8 +196,9 @@ contract ViolaCrowdsale is Ownable {
 
   function partialForwardFunds(uint _amountToTransfer) onlyOwner external {
     require(status == State.Ended);
-    uint amountAllowedForRefund = this.balance.sub(_getUnapprovedAddressFunds());
-    require(_amountToTransfer < amountAllowedForRefund);
+    require(_amountToTransfer < totalApprovedAmount);
+    totalApprovedAmount = totalApprovedAmount.sub(_amountToTransfer);
+    
     wallet.transfer(_amountToTransfer);
   }
 
@@ -287,6 +291,9 @@ contract ViolaCrowdsale is Ownable {
   function approveKYC(address _kycAddress) onlyOwner external {
     require(_kycAddress != address(0));
     addressKYC[_kycAddress] = true;
+
+    uint256 weiAmount = investedSum[_kycAddress];
+    totalApprovedAmount = totalApprovedAmount.add(weiAmount);
   }
 
   //Set KYC status as failed. Refund any eth back to address
@@ -295,6 +302,8 @@ contract ViolaCrowdsale is Ownable {
     addressKYC[_kycAddress] = false;
 
     uint256 weiAmount = investedSum[_kycAddress];
+    totalApprovedAmount = totalApprovedAmount.sub(weiAmount);
+
     if (weiAmount > 0) {
       _refund(_kycAddress);
     }

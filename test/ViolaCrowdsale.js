@@ -864,10 +864,10 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.approveKYC(accounts[6])
             await this.violaCrowdSaleInstance.revokeKYC(accounts[6])
             toCheck = await this.violaCrowdSaleInstance.getTotalTokensByAddress(accounts[6])
-            assert.equal(toCheck.valueOf(), 0,'Revoke KYC did not clear tokens left')         
+            assert.equal(toCheck.valueOf(), 0,'Revoke KYC did not clear tokens left')
 
             await this.violaCrowdSaleInstance.partialForwardFunds(web3.toWei(1, 'ether'));
-            
+
             await this.violaCrowdSaleInstance.claimTokens({from:accounts[1]})
             await this.violaCrowdSaleInstance.claimTokens({from:accounts[2]})
             await this.violaCrowdSaleInstance.claimTokens({from:accounts[3]})
