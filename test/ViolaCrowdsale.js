@@ -44,6 +44,14 @@ contract('ViolaCrowdsale', function (accounts) {
             let state = await this.violaCrowdSaleInstance.status.call();
             state.should.be.bignumber.equal(new BigNumber(State.PendingStart))
         })
+
+        it('should not initialize from pending start', async function () {
+            const startTime = web3.eth.getBlock(web3.eth.blockNumber).timestamp + 5 // next day
+            const endTime = startTime + (day * 20) // 20 days
+            const wallet = accounts[0]
+
+            await this.violaCrowdSaleInstance.initaliseCrowdsale(startTime, endTime, rate, this.violaTokenInstance.address, wallet).should.be.rejectedWith('revert')
+        })
     })
 
     describe('starting crowdsale', function () {
