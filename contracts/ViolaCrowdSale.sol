@@ -419,8 +419,8 @@ contract ViolaCrowdsale is Ownable {
         require(getTokensLeft() >= tokensToAllocate);
         totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
 
-        tokensAllocated[investor] += tokens;
-        bonusTokensAllocated[investor] += bonusTokens;
+        tokensAllocated[investor] = tokensAllocated[investor].add(tokens);
+        bonusTokensAllocated[investor] = bonusTokensAllocated[investor].add(bonusTokens);
 
         if (tokensHasSoldOut()) {
           endCrowdsale();
@@ -578,8 +578,8 @@ contract ViolaCrowdsale is Ownable {
       totalTokensAllocated = totalTokensAllocated.add(totalTokensToAllocate);
       totalReservedTokenAllocated = totalReservedTokenAllocated.add(totalTokensToAllocate);
 
-      externalTokensAllocated[_investor] += _amount;
-      externalBonusTokensAllocated[_investor] += _bonusAmount;
+      externalTokensAllocated[_investor] = externalTokensAllocated[_investor].add(_amount);
+      externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].add(_bonusAmount);
 
       assert(externalTokensAllocated[_investor] > 0);
       assert(externalBonusTokensAllocated[_investor] >= 0);
@@ -636,8 +636,8 @@ contract ViolaCrowdsale is Ownable {
       require(getTokensLeft() >= tokensToAllocate);
       totalTokensAllocated = totalTokensAllocated.add(_amount);
 
-      tokensAllocated[_investor] += _amount;
-      bonusTokensAllocated[_investor] += _bonusAmount;
+      tokensAllocated[_investor] = tokensAllocated[_investor].add(_amount);
+      bonusTokensAllocated[_investor] = bonusTokensAllocated[_investor].add(_bonusAmount);
 
       TopupTokenAllocated(_investor,  _amount, _bonusAmount);
     }
