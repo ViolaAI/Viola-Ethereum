@@ -589,9 +589,6 @@ contract ViolaCrowdsale is Ownable {
 
       externalTokensAllocated[_investor] = externalTokensAllocated[_investor].add(_amount);
       externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].add(_bonusAmount);
-
-      assert(externalTokensAllocated[_investor] > 0);
-      assert(externalBonusTokensAllocated[_investor] >= 0);
       
       ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
 
