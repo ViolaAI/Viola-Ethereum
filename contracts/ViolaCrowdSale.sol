@@ -202,17 +202,6 @@ contract ViolaCrowdsale is Ownable {
     wallet.transfer(_amountToTransfer);
   }
 
-  function _getUnapprovedAddressFunds() internal view returns (uint) {
-    uint totalApprovedAmt = 0;
-    for (uint counter = 0; counter < registeredAddress.length; counter ++) {
-      address currAddress = registeredAddress[counter];
-      if (!addressKYC[currAddress]) {
-        totalApprovedAmt = totalApprovedAmt.add(investedSum[currAddress]);
-      }
-    }
-    return totalApprovedAmt;
-  }
-
   /**
    * Setter functions for crowdsale parameters
    * Only owner can set values
