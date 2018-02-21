@@ -154,6 +154,7 @@ contract ViolaCrowdsale is Ownable {
     }
     require(status == State.Active);
 
+    bonusVestingPeriod = now + 60 days;
 
     status = State.Ended;
 
@@ -499,7 +500,7 @@ contract ViolaCrowdsale is Ownable {
     //Used by investor to claim bonus token
     function claimBonusTokens() external {
       require(hasEnded());
-      require(now >= startTime + bonusVestingPeriod);
+      require(now >= bonusVestingPeriod);
       require(addressKYC[msg.sender]);
 
       address tokenReceiver = msg.sender;
@@ -516,7 +517,7 @@ contract ViolaCrowdsale is Ownable {
     //Used by owner to distribute bonus token
     function distributeBonusTokens(address _tokenReceiver) onlyOwner external {
       require(hasEnded());
-      require(now >= startTime + bonusVestingPeriod);
+      require(now >= bonusVestingPeriod);
 
       address tokenReceiver = _tokenReceiver;
       uint tokensToClaim = getTotalBonusTokensByAddress(tokenReceiver);
