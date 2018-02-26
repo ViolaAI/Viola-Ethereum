@@ -30,13 +30,12 @@ contract('ViolaCrowdsale', function (accounts) {
 
     beforeEach(async function () {
         const startTime = web3.eth.getBlock(web3.eth.blockNumber).timestamp + 5 // next day
-        const endTime = startTime + (day * 20) // 20 days
         const wallet = accounts[0]
 
         this.violaTokenInstance = await ViolaToken.new();        
         this.violaCrowdSaleInstance = await ViolaCrowdSale.new();
         await this.violaTokenInstance.approve(this.violaCrowdSaleInstance.address, initialTokens)            
-        await this.violaCrowdSaleInstance.initialiseCrowdsale(startTime, endTime, rate, this.violaTokenInstance.address, wallet);
+        await this.violaCrowdSaleInstance.initialiseCrowdsale(startTime, rate, this.violaTokenInstance.address, wallet);
     })
 
     describe('initializing contract', function () {
@@ -47,10 +46,9 @@ contract('ViolaCrowdsale', function (accounts) {
 
         it('should not initialize from pending start', async function () {
             const startTime = web3.eth.getBlock(web3.eth.blockNumber).timestamp + 5 // next day
-            const endTime = startTime + (day * 20) // 20 days
             const wallet = accounts[0]
 
-            await this.violaCrowdSaleInstance.initialiseCrowdsale(startTime, endTime, rate, this.violaTokenInstance.address, wallet).should.be.rejectedWith('revert')
+            await this.violaCrowdSaleInstance.initialiseCrowdsale(startTime, rate, this.violaTokenInstance.address, wallet).should.be.rejectedWith('revert')
         })
     })
 
@@ -361,13 +359,13 @@ contract('ViolaCrowdsale', function (accounts) {
         })
 
         it('at the end should be 4', async function(){
-            await increaseTime(day * 20 - 10) // End after 20 days
+            await increaseTime(day * 30 - 10) // End after 20 days
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(4))
         })
 
         it('after ending of ICO should be 0', async function(){
-            await increaseTime(day * 20 + 1)
+            await increaseTime(day * 30 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(0))
         })

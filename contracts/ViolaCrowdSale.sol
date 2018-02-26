@@ -107,16 +107,15 @@ contract ViolaCrowdsale is Ownable {
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
   //Set inital arguments of the crowdsale
-  function initialiseCrowdsale (uint256 _startTime, uint256 _endTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
+  function initialiseCrowdsale (uint256 _startTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
     require(status == State.Deployed);
     require(_startTime >= now);
-    require(_endTime >= _startTime);
     require(_rate > 0);
     require(address(_tokenAddress) != address(0));
     require(_wallet != address(0));
 
     startTime = _startTime;
-    endTime = _endTime;
+    endTime = _startTime + 30 days;
     rate = _rate;
     wallet = _wallet;
     violaToken = TokenERC20(_tokenAddress);
