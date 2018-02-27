@@ -33,8 +33,8 @@ contract TokenERC20 {
     address public owner = msg.sender;
 
     // Public variables of the token
-    string public name = "VIOLA";
-    string public symbol = "VIOLA";
+    string public name = "VIOLET";
+    string public symbol = "VLT";
     uint8 public decimals = 18;
     // 18 decimals is the strongly suggested default, avoid changing it
     uint256 public totalSupply = 250000000 * 10 ** uint256(decimals);
@@ -48,11 +48,10 @@ contract TokenERC20 {
     mapping (address => mapping (address => uint256)) public allowance;
     mapping (address => mapping (address => uint256)) allowed;
 
-    // This generates a public event on the blockchain that will notify clients
+    // Events
     event Transfer(address indexed from, address indexed to, uint256 value);
-
-    // This notifies clients about the amount burnt
     event Burn(address indexed from, uint256 value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -72,21 +71,27 @@ contract TokenERC20 {
      * Internal transfer, only can be called by this contract
      */
     function _transfer(address _from, address _to, uint _value) internal {
-        // Prevent transfer to 0x0 address. Use burn() instead
-        require(_to != 0x0);
+        // allow sending 0 tokens
+        if (_value == 0) {
+            Transfer(_from, _to, _value);    // Follow the spec to louch the event when transfer 0
+            return;
+        }
+
+        // Do not allow transfer to 0x0 or the token contract itself
+        require((_to != 0) && (_to != address(this)));
+
         // Check if the sender has enough
         require(balanceOf[_from] >= _value);
-        // Check for overflows
-        require(balanceOf[_to] + _value > balanceOf[_to]);
+
         // Save this for an assertion in the future
-        uint previousBalances = balanceOf[_from] + balanceOf[_to];
+        uint previousBalances = balanceOf[_from].add(balanceOf[_to]);
         // Subtract from the sender
-        balanceOf[_from] -= _value;
+        balanceOf[_from] = balanceOf[_from].sub(_value);
         // Add the same to the recipient
-        balanceOf[_to] += _value;
+        balanceOf[_to] = balanceOf[_to].add(_value);
         Transfer(_from, _to, _value);
         // Asserts are used to use static analysis to find bugs in your code. They should never fail
-        assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
+        assert(balanceOf[_from].add(balanceOf[_to]) == previousBalances);
     }
 
     /**
@@ -102,18 +107,20 @@ contract TokenERC20 {
     }
 
     /**
-     * Transfer tokens from other address
-     *
-     * Send `_value` tokens to `_to` in behalf of `_from`
-     *
-     * @param _from The address of the sender
-     * @param _to The address of the recipient
-     * @param _value the amount to send
-     */
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        require(_value <= allowance[_from][msg.sender]);     // Check allowance
-        allowance[_from][msg.sender] -= _value;
-        _transfer(_from, _to, _value);
+     * @dev Transfer tokens from one address to another
+     * @param _from address The address which you want to send tokens from
+     * @param _to address The address which you want to transfer to
+     * @param _value uint256 the amount of tokens to be transferred
+    */
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+        require(_to != address(0));
+        require(_value <= balanceOf[_from]);
+        require(_value <= allowance[_from][msg.sender]);
+
+        balanceOf[_from] = balanceOf[_from].sub(_value);
+        balanceOf[_to] = balanceOf[_to].add(_value);
+        allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);
+        Transfer(_from, _to, _value);
         return true;
     }
 
@@ -125,9 +132,9 @@ contract TokenERC20 {
      * @param _spender The address authorized to spend
      * @param _value the max amount they can spend
      */
-    function approve(address _spender, uint256 _value) public
-        returns (bool success) {
+    function approve(address _spender, uint256 _value) public returns (bool success) {
         allowance[msg.sender][_spender] = _value;
+        Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -140,9 +147,7 @@ contract TokenERC20 {
      * @param _value the max amount they can spend
      * @param _extraData some extra information to send to the approved contract
      */
-    function approveAndCall(address _spender, uint256 _value, bytes _extraData)
-        public
-        returns (bool success) {
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData) public returns (bool success) {
         tokenRecipient spender = tokenRecipient(_spender);
         if (approve(_spender, _value)) {
             spender.receiveApproval(msg.sender, _value, this, _extraData);
@@ -159,8 +164,8 @@ contract TokenERC20 {
      */
     function burn(uint256 _value) public returns (bool success) {
         require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
-        balanceOf[msg.sender] -= _value;            // Subtract from the sender
-        totalSupply -= _value;                      // Updates totalSupply
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value); // Subtract from the sender
+        totalSupply = totalSupply.sub(_value);                      // Updates totalSupply
         Burn(msg.sender, _value);
         return true;
     }
@@ -176,9 +181,9 @@ contract TokenERC20 {
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
         require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
         require(_value <= allowance[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
-        totalSupply -= _value;                              // Update totalSupply
+        balanceOf[_from] = balanceOf[_from].sub(_value);                         // Subtract from the targeted balance
+        allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
+        totalSupply = totalSupply.sub(_value);                              // Update totalSupply
         Burn(_from, _value);
         return true;
     }
@@ -210,7 +215,7 @@ contract TokenERC20 {
         assert(value > 0);
         delete balanceOf[msg.sender];
         totalSupply = totalSupply.sub(value);
-        assert(upgrader.upgradeFor(msg.sender, value));
+        require(upgrader.upgradeFor(msg.sender, value));
         return true;
     }
 
@@ -223,13 +228,13 @@ contract TokenERC20 {
         balanceOf[_for] = balanceOf[_for].sub(_value);
         allowed[_for][msg.sender] = _allowance.sub(_value);
         totalSupply = totalSupply.sub(_value);
-        assert(upgrader.upgradeFrom(msg.sender, _for, _value));
+        require(upgrader.upgradeFrom(msg.sender, _for, _value));
         return true;
     }
 
     function () payable external {
         if (upgradable) {
-            assert(upgrade());
+            require(upgrade());
             return;
         }
         revert();
