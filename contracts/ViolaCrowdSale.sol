@@ -75,10 +75,10 @@ contract ViolaCrowdsale is Ownable {
   uint256 public rate;
 
   //Extra bonus token to give *per ETH*
-  uint public bonusTokenRateLevelOne = 30;
-  uint public bonusTokenRateLevelTwo = 15;
-  uint public bonusTokenRateLevelThree = 8;
-  uint public bonusTokenRateLevelFour = 4;
+  uint public bonusTokenRateLevelOne = 20;
+  uint public bonusTokenRateLevelTwo = 17;
+  uint public bonusTokenRateLevelThree = 13;
+  uint public bonusTokenRateLevelFour = 10;
 
   //Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
