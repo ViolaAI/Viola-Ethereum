@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import './TokenERC20.sol';
+import './VLTToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -22,7 +22,7 @@ contract ViolaCrowdsale is Ownable {
   State public status = State.Deployed;
 
   // The token being sold
-  TokenERC20 public violaToken;
+  VLTToken public violaToken;
 
   //For keeping track of whitelist address. cap >0 = whitelisted
   mapping(address=>uint) public maxBuyCap;
@@ -118,7 +118,7 @@ contract ViolaCrowdsale is Ownable {
     endTime = _startTime + 30 days;
     rate = _rate;
     wallet = _wallet;
-    violaToken = TokenERC20(_tokenAddress);
+    violaToken = VLTToken(_tokenAddress);
 
     status = State.PendingStart;
 
