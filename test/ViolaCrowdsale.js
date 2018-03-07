@@ -2,7 +2,7 @@ import increaseTime from './helper/increaseTime'
 import {expect} from 'Chai'
 // Contract to be tested
 const ViolaCrowdSale = artifacts.require('ViolaCrowdsale')
-const ViolaToken = artifacts.require('TokenERC20')
+const ViolaToken = artifacts.require('VLTToken')
 
 const BigNumber = web3.BigNumber
 
