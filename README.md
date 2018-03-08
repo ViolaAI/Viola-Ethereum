@@ -22,7 +22,7 @@ npm install
 ## Test
 In the project folder, run the following command
 ```
-./scripts/test.sh
+npm test
 ```
 Remember to make shell script executable by running `chmod u+x ./scripts/test.sh`
 
