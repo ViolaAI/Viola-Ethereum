@@ -22,6 +22,7 @@
   "homepage": "https://github.com/2359media/Voila-Ethereum#readme",
   "dependencies": {
     "truffle-hdwallet-provider": "0.0.3",
+    "truffle-privatekey-provider": "0.0.5",
     "zeppelin-solidity": "^1.4.0"
   },
   "devDependencies": {

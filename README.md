@@ -19,14 +19,55 @@ Install dependencies
 ```
 npm install
 ```
-## Test
+## Testing on Mac
+Before you start testing, you need to ensure that ganache-cli is installed.
+
 In the project folder, run the following command
 ```
 npm test
 ```
 Remember to make shell script executable by running `chmod u+x ./scripts/test.sh`
 
+## Testing on Windows
+If you are running on Windows, you may need to manually start ganache-cli.
+
+Afterwhich, you can run the following:
+```
+truffle test
+```
+
 ## Deployment to Rinkeby
+### Infura
+This project uses Infura to access Ethereum network. As such you will need to obtain an API key to connect to Infura APIs. If you do not have an API key, you may sign up on their [website](https://infura.io/).
+
+### Wallet
+You will also need a wallet with some Ether that will be used for the deployment gas fee. You can use MyEtherWallet to generate your wallet.
+
+### Deployment
+Open the truffle.js in the project root directory. You will find the following code:
+
+```
+var PrivateKeyProvider = require("truffle-privatekey-provider");
+var privateKey = "YOUR WALLET PRIVATE KEY";
+var infura_apikey = "YOUR API KEY";
+
+require('babel-register')
+module.exports = {
+  networks: {
+    development: {
+      host: "localhost",
+      port: 8545,
+      network_id: "1"
+    },
+    rinkeby: {
+      provider: new PrivateKeyProvider(privateKey, "https://rinkeby.infura.io/"+infura_apikey),
+      network_id: "2",
+    }
+  }
+};
+```
+Replace the `privateKey` and `infura_apiKey` with your own keys.
+
 Compile contracts
 ```
 truffle compile

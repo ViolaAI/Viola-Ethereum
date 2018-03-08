@@ -1,9 +1,7 @@
 
-var HDWalletProvider = require("truffle-hdwallet-provider");
-
-var infura_apikey = "19pY4PqOcBt5YqwjUMbr";
-var mnemonic = "guide little real comfort mosquito judge build person remain rural duck mercy";
-
+var PrivateKeyProvider = require("truffle-privatekey-provider");
+var privateKey = "YOUR WALLET PRIVATE KEY";
+var infura_apikey = "YOUR API KEY";
 
 require('babel-register')
 module.exports = {
@@ -12,11 +10,10 @@ module.exports = {
       host: "localhost",
       port: 8545,
       network_id: "1"
-     },
-     rinkeby: {
-      provider: new HDWalletProvider(mnemonic, "https://rinkeby.infura.io/"+infura_apikey),
-      network_id: "2",
-      gas: 5000000
+    },
+    rinkeby: {
+      provider: new PrivateKeyProvider(privateKey, "https://rinkeby.infura.io/"+infura_apikey),
+      network_id: "2"
     }
-    }
+  }
 };
