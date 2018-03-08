@@ -71,10 +71,10 @@ contract ViolaCrowdsale is Ownable {
   //Min amount investor can purchase
   uint256 public minWeiToPurchase;
 
-  // how many token units a buyer gets per eth
+  // how many token units *in wei* a buyer gets *per wei*
   uint256 public rate;
 
-  //Extra bonus token to give *per ETH*
+  //Extra bonus token to give *in percentage*
   uint public bonusTokenRateLevelOne = 20;
   uint public bonusTokenRateLevelTwo = 15;
   uint public bonusTokenRateLevelThree = 10;
@@ -255,7 +255,9 @@ contract ViolaCrowdsale is Ownable {
 
 
   //Set the amount of wei an address can purchase up to
-  //Value of 0 = not whitelisted
+  //@dev Value of 0 = not whitelisted
+  //@dev cap is in *18 decimals* ( 1 token = 1*10^18)
+  
   function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
         require(_cap > 0);
         require(_investor != address(0));
