@@ -1,6 +1,6 @@
-# Voila-Ethereum
+# Viola-Ethereum
 
-Smart contracts for Voila crowdsale
+Smart contracts for Viola crowdsale
 
 ## Prerequisites
 
