@@ -3,7 +3,7 @@ pragma solidity 0.4.20;
 // ----------------------------------------------------------------------------
 // 'VIOLET' 'VIOLET Token' token contract
 //
-// Symbol      : VLT
+// Symbol      : VAI
 // Name        : VIOLET
 // Total supply: 250,000,000.000000000000000000
 // Decimals    : 18
@@ -104,7 +104,7 @@ contract VLTToken is ERC20Interface {
     // Constructor
     // ------------------------------------------------------------------------
     function VLTToken() public {
-        symbol = "VLT";
+        symbol = "VAI";
         name = "VIOLET";
         decimals = 18;
         _totalSupply = 250000000 * 10**uint256(decimals);
