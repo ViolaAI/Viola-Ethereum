@@ -4,13 +4,10 @@ import './VLTToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
 import '../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
-
-
 /**
  * @title ViolaCrowdsale
- * @dev ViolaCrowdsale reserves token from supply when eth is received
- * funds will be forwarded after the end of crowdsale. Tokens will be claimable
- * within 7 days after crowdsale ends.
+ * A backend process reserves token to the `receive` wallet of the user when ETH is received
+ * Funds will be forwarded after the end of crowdsale. Tokens will be distributable 7 days after crowdsale ends.
  */
  
 contract ViolaCrowdsale is Ownable {
@@ -18,95 +15,84 @@ contract ViolaCrowdsale is Ownable {
 
   enum State { Deployed, PendingStart, Active, Paused, Ended, Completed }
 
-  //Status of contract
+  // Status of contract
   State public status = State.Deployed;
 
   // The token being sold
   VLTToken public violaToken;
 
-  //For keeping track of whitelist address. cap >0 = whitelisted
-  mapping(address=>uint) public maxBuyCap;
+  // For checking if address passed KYC
+  mapping(address => bool) public addressKYC;
 
-  //For checking if address passed KYC
-  mapping(address => bool)public addressKYC;
-
-  //Total wei sum an address has invested
+  // Total wei sum an address has invested
   mapping(address=>uint) public investedSum;
 
-  //Total violaToken an address is allocated
+  // Total VAI tokens an address purchased via BTC/ETH is allocated
   mapping(address=>uint) public tokensAllocated;
 
-    //Total violaToken an address purchased externally is allocated
+  // Total VAI tokens an address purchased via FIAT is allocated
   mapping(address=>uint) public externalTokensAllocated;
 
-  //Total bonus violaToken an address is entitled after vesting
+  // Total bonus VAI tokens an address purchased via BTC/ETH is entitled after vesting
   mapping(address=>uint) public bonusTokensAllocated;
 
-  //Total bonus violaToken an address purchased externally is entitled after vesting
+  // Total bonus VAI tokens an address purchased via FIAT is entitled after vesting
   mapping(address=>uint) public externalBonusTokensAllocated;
 
-  //Store addresses that has registered for crowdsale before (pushed via setWhitelist)
-  //Does not mean whitelisted as it can be revoked. Just to track address for loop
-  address[] public registeredAddress;
-
-  //Total amount not approved for withdrawal
-  uint256 public totalApprovedAmount = 0;
-
-  //Start and end timestamps where investments are allowed (both inclusive)
+  // Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
   uint256 public endTime;
   uint256 public bonusVestingPeriod = 60 days;
 
-
   /**
    * Note all values are calculated in wei(uint256) including token amount
    * 1 ether = 1000000000000000000 wei
-   * 1 viola = 1000000000000000000 vi lawei
+   * 1 violet = 1000000000000000000 vi lawei
    */
 
-
-  //Address where funds are collected
+  // Address where funds are collected
   address public wallet;
 
-  //Min amount investor can purchase
+  // Min amount investor can purchase
   uint256 public minWeiToPurchase;
+
+  // Max amount investor can purchase (global max cap) - default 100 ETH
+  uint256 public maxWeiToPurchase = 100000000000000000000;
 
   // how many token units *in wei* a buyer gets *per wei*
   uint256 public rate;
 
-  //Extra bonus token to give *in percentage*
+  // Extra bonus token to give *in percentage*
   uint public bonusTokenRateLevelOne = 20;
   uint public bonusTokenRateLevelTwo = 15;
   uint public bonusTokenRateLevelThree = 10;
   uint public bonusTokenRateLevelFour = 0;
 
-  //Total amount of tokens allocated for crowdsale
+  // Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
 
-  //Total amount of tokens reserved from external sources
-  //Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
+  // Total amount of tokens reserved from external sources
+  // Sub set of totalTokensAllocated ( totalTokensAllocated - totalReservedTokenAllocated = total tokens allocated for purchases using ether )
   uint256 public totalReservedTokenAllocated;
 
-  //Numbers of token left above 0 to still be considered sold
+  // Numbers of token left above 0 to still be considered sold
   uint256 public leftoverTokensBuffer;
 
   /**
    * event for front end logging
-   */
-
-  event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount, uint256 bonusAmount);
+  */
+  event TokenPurchase(address indexed purchaser, uint256 value, uint256 rate, uint256 amount, uint256 bonusAmount);
+  event TokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
   event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event ExternalPurchaseRefunded(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
-  event BonusTokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
-  event TopupTokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
   event CrowdsalePending();
   event CrowdsaleStarted();
   event CrowdsaleEnded();
   event BonusRateChanged();
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
-  //Set inital arguments of the crowdsale
+  // Set inital arguments of the crowdsale
   function initialiseCrowdsale (uint256 _startTime, uint256 _rate, address _tokenAddress, address _wallet) onlyOwner external {
     require(status == State.Deployed);
     require(_startTime >= now);
@@ -123,7 +109,6 @@ contract ViolaCrowdsale is Ownable {
     status = State.PendingStart;
 
     CrowdsalePending();
-
   }
 
   /**
@@ -131,9 +116,8 @@ contract ViolaCrowdsale is Ownable {
    * To track state of current crowdsale
    */
 
-
   // To be called by Ethereum alarm clock or anyone
-  //Can only be called successfully when time is valid
+  // Can only be called successfully when time is valid
   function startCrowdsale() external {
     require(withinPeriod());
     require(violaToken != address(0));
@@ -145,8 +129,8 @@ contract ViolaCrowdsale is Ownable {
     CrowdsaleStarted();
   }
 
-  //To be called by owner or contract
-  //Ends the crowdsale when tokens are sold out
+  // To be called by owner or contract
+  // Ends the crowdsale when tokens are sold out
   function endCrowdsale() public {
     if (!tokensHasSoldOut()) {
       require(msg.sender == owner);
@@ -159,13 +143,15 @@ contract ViolaCrowdsale is Ownable {
 
     CrowdsaleEnded();
   }
-  //Emergency pause
+
+  // Emergency pause
   function pauseCrowdsale() onlyOwner external {
     require(status == State.Active);
 
     status = State.Paused;
   }
-  //Resume paused crowdsale
+
+  // Resume paused crowdsale
   function unpauseCrowdsale() onlyOwner external {
     require(status == State.Paused);
 
@@ -175,10 +161,12 @@ contract ViolaCrowdsale is Ownable {
   function completeCrowdsale() onlyOwner external {
     require(hasEnded());
     require(violaToken.allowance(owner, this) == 0);
+    
     status = State.Completed;
 
-    _forwardFunds();
-
+    // send ether to the fund collection wallet
+    wallet.transfer(this.balance);
+    
     assert(this.balance == 0);
   }
 
@@ -189,115 +177,45 @@ contract ViolaCrowdsale is Ownable {
     assert(violaToken.allowance(owner, this) == 0);
   }
 
-  // send ether to the fund collection wallet
-  function _forwardFunds() internal {
-    wallet.transfer(this.balance);
-  }
-
-  function partialForwardFunds(uint _amountToTransfer) onlyOwner external {
-    require(status == State.Ended);
-    require(_amountToTransfer < totalApprovedAmount);
-    totalApprovedAmount = totalApprovedAmount.sub(_amountToTransfer);
-    
-    wallet.transfer(_amountToTransfer);
-  }
-
   /**
    * Setter functions for crowdsale parameters
    * Only owner can set values
    */
-
-
   function setLeftoverTokensBuffer(uint256 _tokenBuffer) onlyOwner external {
     require(_tokenBuffer > 0);
     require(getTokensLeft() >= _tokenBuffer);
     leftoverTokensBuffer = _tokenBuffer;
   }
 
-  //Set the ether to token rate
+  // Set the ether to token rate
   function setRate(uint _rate) onlyOwner external {
     require(_rate > 0);
     rate = _rate;
   }
 
   function setBonusTokenRateLevelOne(uint _rate) onlyOwner external {
-    //require(_rate > 0);
     bonusTokenRateLevelOne = _rate;
     BonusRateChanged();
   }
 
   function setBonusTokenRateLevelTwo(uint _rate) onlyOwner external {
-    //require(_rate > 0);
     bonusTokenRateLevelTwo = _rate;
     BonusRateChanged();
   }
 
   function setBonusTokenRateLevelThree(uint _rate) onlyOwner external {
-    //require(_rate > 0);
     bonusTokenRateLevelThree = _rate;
     BonusRateChanged();
   }
   function setBonusTokenRateLevelFour(uint _rate) onlyOwner external {
-    //require(_rate > 0);
     bonusTokenRateLevelFour = _rate;
     BonusRateChanged();
   }
 
-  function setMinWeiToPurchase(uint _minWeiToPurchase) onlyOwner external {
+  function setCapWeiToPurchase(uint256 _minWeiToPurchase, uint256 _maxWeiToPurchase) onlyOwner external {
+    require(_minWeiToPurchase < _maxWeiToPurchase);
     minWeiToPurchase = _minWeiToPurchase;
-  }
-
-
-  /**
-   * Whitelisting and KYC functions
-   * Whitelisted address can buy tokens, KYC successful purchaser can claim token. Refund if fail KYC
-   */
-
-
-  //Set the amount of wei an address can purchase up to
-  //@dev Value of 0 = not whitelisted
-  //@dev cap is in *18 decimals* ( 1 token = 1*10^18)
-  
-  function setWhitelistAddress( address _investor, uint _cap ) onlyOwner external {
-        require(_cap > 0);
-        require(_investor != address(0));
-        maxBuyCap[_investor] = _cap;
-        registeredAddress.push(_investor);
-        //add event
-    }
-
-  //Remove the address from whitelist
-  function removeWhitelistAddress(address _investor) onlyOwner external {
-    require(_investor != address(0));
-    
-    maxBuyCap[_investor] = 0;
-    uint256 weiAmount = investedSum[_investor];
-
-    if (weiAmount > 0) {
-      _refund(_investor);
-    }
-  }
-
-  //Flag address as KYC approved. Address is now approved to claim tokens
-  function approveKYC(address _kycAddress) onlyOwner external {
-    require(_kycAddress != address(0));
-    addressKYC[_kycAddress] = true;
-
-    uint256 weiAmount = investedSum[_kycAddress];
-    totalApprovedAmount = totalApprovedAmount.add(weiAmount);
-  }
-
-  //Set KYC status as failed. Refund any eth back to address
-  function revokeKYC(address _kycAddress) onlyOwner external {
-    require(_kycAddress != address(0));
-    addressKYC[_kycAddress] = false;
-
-    uint256 weiAmount = investedSum[_kycAddress];
-    totalApprovedAmount = totalApprovedAmount.sub(weiAmount);
-
-    if (weiAmount > 0) {
-      _refund(_kycAddress);
-    }
+    maxWeiToPurchase = _maxWeiToPurchase;
   }
 
   /**
@@ -306,15 +224,15 @@ contract ViolaCrowdsale is Ownable {
    */
 
   //Checks if token has been sold out
-    function tokensHasSoldOut() view internal returns (bool) {
-      if (getTokensLeft() <= leftoverTokensBuffer) {
-        return true;
-      } else {
-        return false;
-      }
+  function tokensHasSoldOut() view internal returns (bool) {
+    if (getTokensLeft() <= leftoverTokensBuffer) {
+      return true;
+    } else {
+      return false;
     }
+  }
 
-      // @return true if the transaction can buy tokens
+  // @return true if the transaction can buy tokens
   function withinPeriod() public view returns (bool) {
     return now >= startTime && now <= endTime;
   }
@@ -365,279 +283,202 @@ contract ViolaCrowdsale is Ownable {
     return bonusTokensAllocated[_investor].add(externalBonusTokensAllocated[_investor]);
   }
 
-  function _clearTotalNormalTokensByAddress(address _investor) internal {
-    tokensAllocated[_investor] = 0;
-    externalTokensAllocated[_investor] = 0;
-  }
-
-  function _clearTotalBonusTokensByAddress(address _investor) internal {
-    bonusTokensAllocated[_investor] = 0;
-    externalBonusTokensAllocated[_investor] = 0;
-  }
-
-
   /**
    * Functions to handle buy tokens
    * Fallback function as entry point for eth
    */
-
 
   // Called when ether is sent to contract
   function () external payable {
     buyTokens(msg.sender);
   }
 
-  //Used to buy tokens
-  function buyTokens(address investor) internal {
+  // Used to buy tokens
+  function buyTokens(address _from) internal {
     require(status == State.Active);
-    require(msg.value >= minWeiToPurchase);
-
+    
     uint weiAmount = msg.value;
 
-    checkCapAndRecord(investor,weiAmount);
+    // contribution must be within min and not more than max allowed
+    require(weiAmount >= minWeiToPurchase); 
+    require(weiAmount <= maxWeiToPurchase);
 
-    allocateToken(investor,weiAmount);
+    // Track invested amount of investor
+    investedSum[_from] = investedSum[_from].add(weiAmount);
+
+    // Get bonus rate applied
+    uint256 appliedRate = getTimeBasedBonusRate();
+
+    // calculate token amount to be allocated
+    uint tokens = weiAmount.mul(rate);
+    uint bonusTokens = tokens.mul(appliedRate).div(100);
+
+    // send purchase event to backend to trigger allocateTokens to the correct receiving address
+    TokenPurchase(_from, weiAmount, appliedRate, tokens, bonusTokens);
+  }
+
+  // Backend calls this to allocate tokens to an ETH or BTC buyer's receiving address in the DB
+  function allocateTokens(address _receive, uint256 _tokens, uint256 _bonusTokens) onlyOwner external {
+    require(_tokens > 0);
     
+    uint256 tokensToAllocate = _tokens.add(_bonusTokens);
+    
+    require(getTokensLeft() >= tokensToAllocate);
+    totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
+
+    tokensAllocated[_receive] = tokensAllocated[_receive].add(_tokens);
+    bonusTokensAllocated[_receive] = bonusTokensAllocated[_receive].add(_bonusTokens);
+
+    if (tokensHasSoldOut()) {
+      endCrowdsale();
+    }
+    TokenAllocated(_receive,  _tokens, _bonusTokens);
   }
 
-  //Internal call to check max user cap
-  function checkCapAndRecord(address investor, uint weiAmount) internal {
-      uint remaindingCap = maxBuyCap[investor];
-      require(remaindingCap >= weiAmount);
-      maxBuyCap[investor] = remaindingCap.sub(weiAmount);
-      investedSum[investor] = investedSum[investor].add(weiAmount);
+  // Backend calls this to allocate tokens to a FIAT buyer's receiving address in the DB
+  function externalPurchaseTokens(address _investor, uint256 _amount, uint256 _bonusAmount) onlyOwner external {
+    require(_amount > 0);
+
+    uint256 totalTokensToAllocate = _amount.add(_bonusAmount);
+
+    require(getTokensLeft() >= totalTokensToAllocate);
+    totalTokensAllocated = totalTokensAllocated.add(totalTokensToAllocate);
+    totalReservedTokenAllocated = totalReservedTokenAllocated.add(totalTokensToAllocate);
+
+    externalTokensAllocated[_investor] = externalTokensAllocated[_investor].add(_amount);
+    externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].add(_bonusAmount);
+    
+    if (tokensHasSoldOut()) {
+      endCrowdsale();
+    }
+    ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
   }
-
-  //Internal call to allocated tokens purchased
-    function allocateToken(address investor, uint weiAmount) internal {
-        // calculate token amount to be created
-        uint tokens = weiAmount.mul(rate);
-        uint bonusTokens = tokens.mul(getTimeBasedBonusRate()).div(100);
-        
-        uint tokensToAllocate = tokens.add(bonusTokens);
-        
-        require(getTokensLeft() >= tokensToAllocate);
-        totalTokensAllocated = totalTokensAllocated.add(tokensToAllocate);
-
-        tokensAllocated[investor] = tokensAllocated[investor].add(tokens);
-        bonusTokensAllocated[investor] = bonusTokensAllocated[investor].add(bonusTokens);
-
-        if (tokensHasSoldOut()) {
-          endCrowdsale();
-        }
-        TokenPurchase(investor, weiAmount, tokens, bonusTokens);
-  }
-
-
 
   /**
    * Functions for refunds & claim tokens
    * 
    */
 
-
-
-  //Refund users in case of unsuccessful crowdsale
+  // Refund users in case of unsuccessful kyc
   function _refund(address _investor) internal {
     uint256 investedAmt = investedSum[_investor];
     require(investedAmt > 0);
 
-  
-      uint totalInvestorTokens = tokensAllocated[_investor].add(bonusTokensAllocated[_investor]);
+    uint totalInvestorTokens = tokensAllocated[_investor].add(bonusTokensAllocated[_investor]);
 
     if (status == State.Active) {
       //Refunded tokens go back to sale pool
       totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
     }
 
-    _clearAddressFromCrowdsale(_investor);
+    // Set token allocation to 0
+    tokensAllocated[_investor] = 0;
+    bonusTokensAllocated[_investor] = 0;
 
     _investor.transfer(investedAmt);
 
     Refunded(_investor, investedAmt);
   }
 
-    //Partial refund users
-  function refundPartial(address _investor, uint _refundAmt, uint _tokenAmt, uint _bonusTokenAmt) onlyOwner external {
+  // Called when KYC is rejected to refund the user and de-allocate tokens
+  function rejectKYC(address _from, address _receive) onlyOwner external {
+    require(_from != address(0));
+    require(_receive != address(0));
+    addressKYC[_receive] = false;
 
-    uint investedAmt = investedSum[_investor];
-    require(investedAmt > _refundAmt);
-    require(tokensAllocated[_investor] > _tokenAmt);
-    require(bonusTokensAllocated[_investor] > _bonusTokenAmt);
+    uint256 weiAmount = investedSum[_from];
 
-    investedSum[_investor] = investedSum[_investor].sub(_refundAmt);
-    tokensAllocated[_investor] = tokensAllocated[_investor].sub(_tokenAmt);
-    bonusTokensAllocated[_investor] = bonusTokensAllocated[_investor].sub(_bonusTokenAmt);
-
-
-    uint totalRefundTokens = _tokenAmt.add(_bonusTokenAmt);
-
-    if (status == State.Active) {
-      //Refunded tokens go back to sale pool
-      totalTokensAllocated = totalTokensAllocated.sub(totalRefundTokens);
+    if (weiAmount > 0) {
+      _refund(_from);
+      investedSum[_from] = 0;
     }
-
-    _investor.transfer(_refundAmt);
-
-    Refunded(_investor, _refundAmt);
   }
 
-  //Used by investor to claim token
-    function claimTokens() external {
-      require(hasEnded());
-      require(addressKYC[msg.sender]);
-      address tokenReceiver = msg.sender;
-      uint tokensToClaim = getTotalNormalTokensByAddress(tokenReceiver);
+  // Used by owner to distribute paid tokens from ETH and BTC buyers (non-bonus) to approved KYC users
+  function distributeTokens(address _receive) onlyOwner external {
+    require(hasEnded());
+    require(_receive != address(0));
 
-      require(tokensToClaim > 0);
-      _clearTotalNormalTokensByAddress(tokenReceiver);
+    // Record KYC Status of investor to approved
+    addressKYC[_receive] = true;
 
-      violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+    uint256 tokensToClaim = tokensAllocated[_receive];
 
-      TokenDistributed(tokenReceiver, tokensToClaim);
+    require(tokensToClaim > 0);
+    tokensAllocated[_receive] = 0;
 
-    }
+    // Transfer allocated tokens to the receiving address
+    transferTokens(_receive, tokensToClaim);
 
-    //Used by investor to claim bonus token
-    function claimBonusTokens() external {
-      require(hasEnded());
-      require(now >= bonusVestingPeriod);
-      require(addressKYC[msg.sender]);
+    TokenDistributed(_receive, tokensToClaim); 
+  }
 
-      address tokenReceiver = msg.sender;
-      uint tokensToClaim = getTotalBonusTokensByAddress(tokenReceiver);
+  // Used by owner to distribute paid tokens from FIAT buyers (non-bonus) to approved KYC users
+  function distributeExternalTokens(address _receive) onlyOwner external {
+    require(hasEnded());
+    require(_receive != address(0));
 
-      require(tokensToClaim > 0);
-      _clearTotalBonusTokensByAddress(tokenReceiver);
+    // Record KYC Status of investor to approved
+    addressKYC[_receive] = true;
 
-      violaToken.transferFrom(owner, tokenReceiver, tokensToClaim);
+    uint256 tokensToClaim = externalTokensAllocated[_receive];
 
-      BonusTokenDistributed(tokenReceiver, tokensToClaim);
-    }
+    require(tokensToClaim > 0);
+    externalTokensAllocated[_receive] = 0;
 
-    //Used by owner to distribute bonus token
-    function distributeBonusTokens(address _tokenReceiver) onlyOwner external {
-      require(hasEnded());
-      require(now >= bonusVestingPeriod);
+    // Transfer allocated tokens to the receiving address
+    transferTokens(_receive, tokensToClaim);
 
-      address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = getTotalBonusTokensByAddress(tokenReceiver);
+    TokenDistributed(_receive, tokensToClaim); 
+  }
 
-      require(tokensToClaim > 0);
-      _clearTotalBonusTokensByAddress(tokenReceiver);
+  // Distribute bonus tokens from ETH / BTC purchase
+  function distributeBonusTokens(address _receive) onlyOwner external {
+    require(hasEnded());
+    require(now >= bonusVestingPeriod);
 
-      transferTokens(tokenReceiver, tokensToClaim);
+    uint tokensToClaim = bonusTokensAllocated[_receive];
 
-      BonusTokenDistributed(tokenReceiver,tokensToClaim);
+    require(tokensToClaim > 0);
+    bonusTokensAllocated[_receive] = 0;
 
-    }
+    transferTokens(_receive, tokensToClaim);
 
-    //Used by owner to distribute token
-    function distributeICOTokens(address _tokenReceiver) onlyOwner external {
-      require(hasEnded());
+    TokenDistributed(_receive, tokensToClaim);
+  }
 
-      address tokenReceiver = _tokenReceiver;
-      uint tokensToClaim = getTotalNormalTokensByAddress(tokenReceiver);
+  // Distribute bonus tokens from FIAT purchase
+  function distributeExternalBonusTokens(address _receive) onlyOwner external {
+    require(hasEnded());
+    require(now >= bonusVestingPeriod);
 
-      require(tokensToClaim > 0);
-      _clearTotalNormalTokensByAddress(tokenReceiver);
+    uint tokensToClaim = externalBonusTokensAllocated[_receive];
 
-      transferTokens(tokenReceiver, tokensToClaim);
+    require(tokensToClaim > 0);
+    externalBonusTokensAllocated[_receive] = 0;
 
-      TokenDistributed(tokenReceiver,tokensToClaim);
+    transferTokens(_receive, tokensToClaim);
 
-    }
+    TokenDistributed(_receive, tokensToClaim);
+  }
 
-    //For owner to reserve token for presale
-    // function reserveTokens(uint _amount) onlyOwner external {
+  function refundExternalPurchase(address _investor) onlyOwner external {
+    require(_investor != address(0));
+    require(externalTokensAllocated[_investor] > 0);
 
-    //   require(getTokensLeft() >= _amount);
-    //   totalTokensAllocated = totalTokensAllocated.add(_amount);
-    //   totalReservedTokenAllocated = totalReservedTokenAllocated.add(_amount);
+    uint externalTokens = externalTokensAllocated[_investor];
+    uint externalBonusTokens = externalBonusTokensAllocated[_investor];
 
-    // }
+    externalTokensAllocated[_investor] = 0;
+    externalBonusTokensAllocated[_investor] = 0;
 
-    // //To distribute tokens not allocated by crowdsale contract
-    // function distributePresaleTokens(address _tokenReceiver, uint _amount) onlyOwner external {
-    //   require(hasEnded());
-    //   require(_tokenReceiver != address(0));
-    //   require(_amount > 0);
+    uint totalInvestorTokens = externalTokens.add(externalBonusTokens);
 
-    //   violaToken.transferFrom(owner, _tokenReceiver, _amount);
+    totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalInvestorTokens);
+    totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
 
-    //   TokenDistributed(_tokenReceiver,_amount);
-
-    // }
-
-    //For external purchases & pre-sale via btc/fiat
-    function externalPurchaseTokens(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
-      require(_amount > 0);
-      uint256 totalTokensToAllocate = _amount.add(_bonusAmount);
-
-      require(getTokensLeft() >= totalTokensToAllocate);
-      totalTokensAllocated = totalTokensAllocated.add(totalTokensToAllocate);
-      totalReservedTokenAllocated = totalReservedTokenAllocated.add(totalTokensToAllocate);
-
-      externalTokensAllocated[_investor] = externalTokensAllocated[_investor].add(_amount);
-      externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].add(_bonusAmount);
-      
-      ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
-
-    }
-
-    function refundAllExternalPurchase(address _investor) onlyOwner external {
-      require(_investor != address(0));
-      require(externalTokensAllocated[_investor] > 0);
-
-      uint externalTokens = externalTokensAllocated[_investor];
-      uint externalBonusTokens = externalBonusTokensAllocated[_investor];
-
-      externalTokensAllocated[_investor] = 0;
-      externalBonusTokensAllocated[_investor] = 0;
-
-      uint totalInvestorTokens = externalTokens.add(externalBonusTokens);
-
-      totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalInvestorTokens);
-      totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
-
-      ExternalPurchaseRefunded(_investor,externalTokens,externalBonusTokens);
-    }
-
-    function refundExternalPurchase(address _investor, uint _amountToRefund, uint _bonusAmountToRefund) onlyOwner external {
-      require(_investor != address(0));
-      require(externalTokensAllocated[_investor] >= _amountToRefund);
-      require(externalBonusTokensAllocated[_investor] >= _bonusAmountToRefund);
-
-      uint totalTokensToRefund = _amountToRefund.add(_bonusAmountToRefund);
-      externalTokensAllocated[_investor] = externalTokensAllocated[_investor].sub(_amountToRefund);
-      externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].sub(_bonusAmountToRefund);
-
-      totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalTokensToRefund);
-      totalTokensAllocated = totalTokensAllocated.sub(totalTokensToRefund);
-
-      ExternalPurchaseRefunded(_investor,_amountToRefund,_bonusAmountToRefund);
-    }
-
-    function _clearAddressFromCrowdsale(address _investor) internal {
-      tokensAllocated[_investor] = 0;
-      bonusTokensAllocated[_investor] = 0;
-      investedSum[_investor] = 0;
-      maxBuyCap[_investor] = 0;
-    }
-
-    function allocateTopupToken(address _investor, uint _amount, uint _bonusAmount) onlyOwner external {
-      require(hasEnded());
-      require(_amount > 0);
-      uint256 tokensToAllocate = _amount.add(_bonusAmount);
-
-      require(getTokensLeft() >= tokensToAllocate);
-      totalTokensAllocated = totalTokensAllocated.add(_amount);
-
-      tokensAllocated[_investor] = tokensAllocated[_investor].add(_amount);
-      bonusTokensAllocated[_investor] = bonusTokensAllocated[_investor].add(_bonusAmount);
-
-      TopupTokenAllocated(_investor,  _amount, _bonusAmount);
-    }
+    ExternalPurchaseRefunded(_investor,externalTokens, externalBonusTokens);
+  }
 
   //For cases where token are mistakenly sent / airdrops
   function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {
