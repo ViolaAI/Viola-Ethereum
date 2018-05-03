@@ -2,7 +2,7 @@ var config = require('./config');
 
 var PrivateKeyProvider = require("truffle-privatekey-provider");
 var privateKey = config.privatekey;
-var provider_url = config.provider_url + config.infura_apikey;
+var infura_apikey = config.infura_apikey;
 
 require('babel-register')
 
@@ -14,8 +14,14 @@ module.exports = {
       network_id: "1"
     },
     rinkeby: {
-      provider: new PrivateKeyProvider(privateKey, provider_url),
+      provider: new PrivateKeyProvider(privateKey, "https://rinkeby.infura.io/" + infura_apikey),
       network_id: "2"
+    }, 
+    mainnet: {
+      provider: new PrivateKeyProvider(privateKey, "https://mainnet.infura.io/" + infura_apikey),
+      gas: 6700000,
+      gasPrice: 20000000000,
+      network_id: "3"
     }
   }
 };

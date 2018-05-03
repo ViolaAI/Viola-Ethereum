@@ -22,7 +22,7 @@ contract ViolaCrowdsale is Ownable {
   VLTToken public violaToken;
 
   // For checking if address passed KYC
-  mapping(address => bool) public addressKYC;
+  mapping(address=>bool) public addressKYC;
 
   // Total wei sum an address has invested
   mapping(address=>uint) public investedSum;
@@ -38,6 +38,9 @@ contract ViolaCrowdsale is Ownable {
 
   // Total bonus VAI tokens an address purchased via FIAT is entitled after vesting
   mapping(address=>uint) public externalBonusTokensAllocated;
+
+  // Allocation ID's that has been catered for to prevent double allocations
+  mapping(uint=>bool) public hasAllocatedInID;
 
   // Start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
@@ -83,6 +86,7 @@ contract ViolaCrowdsale is Ownable {
   */
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 rate, uint256 amount, uint256 bonusAmount);
   event TokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
+  event TokenCleared(address indexed addressCleared, uint256 amount, uint256 bonusAmount);
   event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event ExternalPurchaseRefunded(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
@@ -318,8 +322,9 @@ contract ViolaCrowdsale is Ownable {
   }
 
   // Backend calls this to allocate tokens to an ETH or BTC buyer's receiving address in the DB
-  function allocateTokens(address _receive, uint256 _tokens, uint256 _bonusTokens) onlyOwner external {
+  function allocateTokens(address _receive, uint256 _tokens, uint256 _bonusTokens, uint256 _allocateID) onlyOwner external {
     require(_tokens > 0);
+    require(hasAllocatedInID[_allocateID] == false);
     
     uint256 tokensToAllocate = _tokens.add(_bonusTokens);
     
@@ -329,6 +334,8 @@ contract ViolaCrowdsale is Ownable {
     tokensAllocated[_receive] = tokensAllocated[_receive].add(_tokens);
     bonusTokensAllocated[_receive] = bonusTokensAllocated[_receive].add(_bonusTokens);
 
+    hasAllocatedInID[_allocateID] = true;
+
     if (tokensHasSoldOut()) {
       endCrowdsale();
     }
@@ -336,8 +343,9 @@ contract ViolaCrowdsale is Ownable {
   }
 
   // Backend calls this to allocate tokens to a FIAT buyer's receiving address in the DB
-  function externalPurchaseTokens(address _investor, uint256 _amount, uint256 _bonusAmount) onlyOwner external {
+  function externalPurchaseTokens(address _investor, uint256 _amount, uint256 _bonusAmount, uint256 _allocateID) onlyOwner external {
     require(_amount > 0);
+    require(hasAllocatedInID[_allocateID] == false);
 
     uint256 totalTokensToAllocate = _amount.add(_bonusAmount);
 
@@ -347,6 +355,8 @@ contract ViolaCrowdsale is Ownable {
 
     externalTokensAllocated[_investor] = externalTokensAllocated[_investor].add(_amount);
     externalBonusTokensAllocated[_investor] = externalBonusTokensAllocated[_investor].add(_bonusAmount);
+
+    hasAllocatedInID[_allocateID] = true;
     
     if (tokensHasSoldOut()) {
       endCrowdsale();
@@ -479,6 +489,22 @@ contract ViolaCrowdsale is Ownable {
 
     ExternalPurchaseRefunded(_investor,externalTokens, externalBonusTokens);
   }
+
+  // Backend calls this to de-allocate mistakenly allocated tokens to an ETH or BTC buyer's receiving address
+  /*function clearAllocatedTokens(address _receive) onlyOwner external {
+    require(_receive != address(0));
+
+    uint256 tokens = tokensAllocated[_receive];
+    uint256 bonusTokens = bonusTokensAllocated[_receive];
+    uint256 tokensToClear = tokens.add(bonusTokens);
+    
+    totalTokensAllocated = totalTokensAllocated.sub(tokensToClear);
+
+    tokensAllocated[_receive] = 0;
+    bonusTokensAllocated[_receive] = 0;
+
+    TokenCleared(_receive,  tokens, bonusTokens);
+  }*/
 
   //For cases where token are mistakenly sent / airdrops
   function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {
