@@ -1,10 +1,10 @@
 # Viola-Ethereum
 
-Smart contracts for Viola crowdsale
+Smart contracts for Viola.AI crowdsale
 
 ## Prerequisites
 
-You will need to have the following softwares installed
+You will need to have the following software installed
 
 - [Node JS](https://nodejs.org/en/) version 8.9.3
 - [Truffle](http://truffleframework.com/) version 4.0.3
@@ -13,27 +13,30 @@ You will need to have the following softwares installed
 ## Getting Started
 Clone this repository. Change directory to this project folder
 ```
-cd Viola-Ethereum
+$ cd Viola-Ethereum
 ```
 Install dependencies
 ```
-npm install
+$ npm install
 ```
 ## Testing on Mac
 Before you start testing, you need to ensure that ganache-cli is installed.
 
 In the project folder, run the following command
 ```
-npm test
+$ npm test
 ```
 Remember to make shell script executable by running `chmod u+x ./scripts/test.sh`
 
 ## Testing on Windows
 If you are running on Windows, you may need to manually start ganache-cli.
-
-Afterwhich, you can run the following:
 ```
-truffle test
+$ ganache-cli
+```
+
+Afterwhich, you can run the following on a new command line window:
+```
+$ truffle test
 ```
 
 ## Deployment to Rinkeby
@@ -92,10 +95,6 @@ The output file `ViolaCrowdsale_flat.sol` can be found in `out` folder
 ## Built With
 
 - [Zeppelin-Solidity](https://openzeppelin.org/) version 1.4.0
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/2359media/viola-ethereum/tags). 
 
 ## Acknowledgments
 

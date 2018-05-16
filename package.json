@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/2359media/Voila-Ethereum.git"
+    "url": "git+https://github.com/ViolaAI/Viola-Ethereum.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/2359media/Voila-Ethereum/issues"
+    "url": "https://github.com/ViolaAI/Viola-Ethereum/issues"
   },
-  "homepage": "https://github.com/2359media/Voila-Ethereum#readme",
+  "homepage": "https://github.com/ViolaAI/Voila-Ethereum#readme",
   "dependencies": {
     "truffle-hdwallet-provider": "0.0.3",
     "truffle-privatekey-provider": "0.0.5",
