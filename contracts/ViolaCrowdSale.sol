@@ -1,4 +1,4 @@
-pragma solidity 0.4.20;
+pragma solidity 0.4.24;
 
 import './VLTToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
@@ -66,10 +66,10 @@ contract ViolaCrowdsale is Ownable {
   uint256 public rate;
 
   // Extra bonus token to give *in percentage*
-  uint public bonusTokenRateLevelOne = 20;
-  uint public bonusTokenRateLevelTwo = 15;
-  uint public bonusTokenRateLevelThree = 10;
-  uint public bonusTokenRateLevelFour = 0;
+  uint public bonusTokenRateLevelOne = 25; // 2 days
+  uint public bonusTokenRateLevelTwo = 20; // 5 days
+  uint public bonusTokenRateLevelThree = 15; // 8 days
+  uint public bonusTokenRateLevelFour = 10; // 15 days
 
   // Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
@@ -86,7 +86,6 @@ contract ViolaCrowdsale is Ownable {
   */
   event TokenPurchase(address indexed purchaser, uint256 value, uint256 rate, uint256 amount, uint256 bonusAmount);
   event TokenAllocated(address indexed tokenReceiver, uint256 amount, uint256 bonusAmount);
-  event TokenCleared(address indexed addressCleared, uint256 amount, uint256 bonusAmount);
   event ExternalTokenPurchase(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event ExternalPurchaseRefunded(address indexed purchaser, uint256 amount, uint256 bonusAmount);
   event TokenDistributed(address indexed tokenReceiver, uint256 tokenAmount);
@@ -258,10 +257,11 @@ contract ViolaCrowdsale is Ownable {
   }
 
   function getTimeBasedBonusRate() public view returns(uint) {
-    bool bonusDuration1 = now >= startTime && now <= (startTime + 1 days);  //First 24hr
-    bool bonusDuration2 = now > (startTime + 1 days) && now <= (startTime + 3 days);//Next 48 hr
-    bool bonusDuration3 = now > (startTime + 3 days) && now <= (startTime + 10 days);//4th to 10th day
-    bool bonusDuration4 = now > (startTime + 10 days) && now <= endTime;//11th day onwards
+    bool bonusDuration1 = now >= startTime && now <= (startTime + 2 days);  // Day 1-2 (2 days)
+    bool bonusDuration2 = now > (startTime + 2 days) && now <= (startTime + 7 days); // Day 3-7 (5 days)
+    bool bonusDuration3 = now > (startTime + 7 days) && now <= (startTime + 17 days); // Day 8-17 (10 days)
+    bool bonusDuration4 = now > (startTime + 17 days) && now <= endTime; // Day 18 to end (15 days or less)
+
     if (bonusDuration1) {
       return bonusTokenRateLevelOne;
     } else if (bonusDuration2) {
@@ -472,6 +472,7 @@ contract ViolaCrowdsale is Ownable {
     TokenDistributed(_receive, tokensToClaim);
   }
 
+  // Refund allocated tokens from FIAT contributors
   function refundExternalPurchase(address _investor) onlyOwner external {
     require(_investor != address(0));
     require(externalTokensAllocated[_investor] > 0);
@@ -489,22 +490,6 @@ contract ViolaCrowdsale is Ownable {
 
     ExternalPurchaseRefunded(_investor,externalTokens, externalBonusTokens);
   }
-
-  // Backend calls this to de-allocate mistakenly allocated tokens to an ETH or BTC buyer's receiving address
-  /*function clearAllocatedTokens(address _receive) onlyOwner external {
-    require(_receive != address(0));
-
-    uint256 tokens = tokensAllocated[_receive];
-    uint256 bonusTokens = bonusTokensAllocated[_receive];
-    uint256 tokensToClear = tokens.add(bonusTokens);
-    
-    totalTokensAllocated = totalTokensAllocated.sub(tokensToClear);
-
-    tokensAllocated[_receive] = 0;
-    bonusTokensAllocated[_receive] = 0;
-
-    TokenCleared(_receive,  tokens, bonusTokens);
-  }*/
 
   //For cases where token are mistakenly sent / airdrops
   function emergencyERC20Drain( ERC20 token, uint amount ) external onlyOwner {

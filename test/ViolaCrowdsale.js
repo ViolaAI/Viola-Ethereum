@@ -426,52 +426,52 @@ contract('ViolaCrowdsale', function (accounts) {
             await increaseTime(10)
             await this.violaCrowdSaleInstance.startCrowdsale()
         })
-        it('at the beginning of Day 1 should be 20', async function(){
+        it('at the beginning of Day 1 should be 25', async function(){
             await increaseTime(10) //after 10 second
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(20))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(25))
         })
 
-        it('at the end of Day 1 should be 20', async function(){
-            await increaseTime(day * 1 - 10)
+        it('at the end of Day 2 should be 25', async function(){
+            await increaseTime(day * 2 - 10)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(25))
+        })
+
+        it('at the beginning of Day 3 should be 20', async function(){
+            await increaseTime(day * 2 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(20))
         })
 
-        it('at the beginning of Day 2 should be 15', async function(){
-            await increaseTime(day * 1 + 1)
+        it('at the end of Day 7 should be 20', async function(){
+            await increaseTime(day * 7 - 10)
+            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
+            await bonusRate.should.be.bignumber.equal(new BigNumber(20))
+        })
+
+        it('at the beginning of Day 8 should be 15', async function(){
+            await increaseTime(day * 7 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
         })
 
-        it('at the end of Day 3 should be 15', async function(){
-            await increaseTime(day * 3 - 10)
+        it('at the end of Day 17 should be 15', async function(){
+            await increaseTime(day * 17 - 10)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
             await bonusRate.should.be.bignumber.equal(new BigNumber(15))
-        })
-
-        it('at the beginning of Day 4 should be 10', async function(){
-            await increaseTime(day * 3 + 1)
-            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(10))
-        })
-
-        it('at the end of Day 10 should be 10', async function(){
-            await increaseTime(day * 10 - 10)
-            let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(10))
         })
         
-        it('at the beginning of Day 11 should be 0', async function(){
-            await increaseTime(day * 10 + 1)
+        it('at the beginning of Day 18 should be 10', async function(){
+            await increaseTime(day * 18 + 1)
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(0))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(10))
         })
 
-        it('at the end should be 0', async function(){
-            await increaseTime(day * 30 - 10) // End after 20 days
+        it('at the end should be 10', async function(){
+            await increaseTime(day * 30 - 10) // End after 30 days
             let bonusRate = await this.violaCrowdSaleInstance.getTimeBasedBonusRate();
-            await bonusRate.should.be.bignumber.equal(new BigNumber(0))
+            await bonusRate.should.be.bignumber.equal(new BigNumber(10))
         })
 
         it('after end of ICO duration should be 0', async function(){
