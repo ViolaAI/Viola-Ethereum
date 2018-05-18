@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.4.23;
 
 // ----------------------------------------------------------------------------
 // 'VIOLET' 'VIOLET Token' token contract
@@ -103,13 +103,13 @@ contract VLTToken is ERC20Interface {
     // ------------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------------
-    function VLTToken() public {
+    constructor() public {
         symbol = "VAI";
         name = "VIOLET";
         decimals = 18;
         _totalSupply = 250000000 * 10**uint256(decimals);
         balances[owner] = _totalSupply;
-        Transfer(address(0), owner, _totalSupply);
+        emit Transfer(address(0), owner, _totalSupply);
     }
 
 
@@ -137,7 +137,7 @@ contract VLTToken is ERC20Interface {
     function transfer(address _to, uint256 _value) public returns (bool) {
         // allow sending 0 tokens
         if (_value == 0) {
-            Transfer(msg.sender, _to, _value);    // Follow the spec to louch the event when transfer 0
+            emit Transfer(msg.sender, _to, _value);    // Follow the spec to louch the event when transfer 0
             return;
         }
         
@@ -147,7 +147,7 @@ contract VLTToken is ERC20Interface {
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
-        Transfer(msg.sender, _to, _value);
+        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
@@ -163,7 +163,7 @@ contract VLTToken is ERC20Interface {
     */
     function approve(address _spender, uint256 _value) public returns (bool) {
         allowed[msg.sender][_spender] = _value;
-        Approval(msg.sender, _spender, _value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -176,7 +176,7 @@ contract VLTToken is ERC20Interface {
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
         // allow sending 0 tokens
         if (_value == 0) {
-            Transfer(_from, _to, _value);    // Follow the spec to louch the event when transfer 0
+            emit Transfer(_from, _to, _value);    // Follow the spec to louch the event when transfer 0
             return;
         }
 
@@ -187,7 +187,7 @@ contract VLTToken is ERC20Interface {
         balances[_from] = balances[_from].sub(_value);
         balances[_to] = balances[_to].add(_value);
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-        Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, _value);
         return true;
     }
 
@@ -215,7 +215,7 @@ contract VLTToken is ERC20Interface {
     */
     function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
         allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
@@ -236,7 +236,7 @@ contract VLTToken is ERC20Interface {
         } else {
         allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
         }
-        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
@@ -252,8 +252,8 @@ contract VLTToken is ERC20Interface {
         address burner = msg.sender;
         balances[burner] = balances[burner].sub(_value);
         _totalSupply = _totalSupply.sub(_value);
-        Burn(burner, _value);
-        Transfer(burner, address(0), _value);
+        emit Burn(burner, _value);
+        emit Transfer(burner, address(0), _value);
     }
 
     /**
@@ -268,8 +268,8 @@ contract VLTToken is ERC20Interface {
         balances[_from] = balances[_from].sub(_value);  // Subtract from the targeted balance
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
         _totalSupply = _totalSupply.sub(_value);                              // Update totalSupply
-        Burn(_from, _value);
-        Transfer(_from, address(0), _value);
+        emit Burn(_from, _value);
+        emit Transfer(_from, address(0), _value);
         return true;
     } 
 
