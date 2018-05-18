@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.4.23;
 
 import './VLTToken.sol';
 import '../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
@@ -111,7 +111,7 @@ contract ViolaCrowdsale is Ownable {
 
     status = State.PendingStart;
 
-    CrowdsalePending();
+    emit CrowdsalePending();
   }
 
   /**
@@ -129,7 +129,7 @@ contract ViolaCrowdsale is Ownable {
 
     status = State.Active;
 
-    CrowdsaleStarted();
+    emit CrowdsaleStarted();
   }
 
   // To be called by owner or contract
@@ -144,7 +144,7 @@ contract ViolaCrowdsale is Ownable {
 
     status = State.Ended;
 
-    CrowdsaleEnded();
+    emit CrowdsaleEnded();
   }
 
   // Emergency pause
@@ -168,9 +168,9 @@ contract ViolaCrowdsale is Ownable {
     status = State.Completed;
 
     // send ether to the fund collection wallet
-    wallet.transfer(this.balance);
+    wallet.transfer(address(this).balance);
     
-    assert(this.balance == 0);
+    assert(address(this).balance == 0);
   }
 
   function burnExtraTokens() onlyOwner external {
@@ -198,21 +198,21 @@ contract ViolaCrowdsale is Ownable {
 
   function setBonusTokenRateLevelOne(uint _rate) onlyOwner external {
     bonusTokenRateLevelOne = _rate;
-    BonusRateChanged();
+    emit BonusRateChanged();
   }
 
   function setBonusTokenRateLevelTwo(uint _rate) onlyOwner external {
     bonusTokenRateLevelTwo = _rate;
-    BonusRateChanged();
+    emit BonusRateChanged();
   }
 
   function setBonusTokenRateLevelThree(uint _rate) onlyOwner external {
     bonusTokenRateLevelThree = _rate;
-    BonusRateChanged();
+    emit BonusRateChanged();
   }
   function setBonusTokenRateLevelFour(uint _rate) onlyOwner external {
     bonusTokenRateLevelFour = _rate;
-    BonusRateChanged();
+    emit BonusRateChanged();
   }
 
   function setCapWeiToPurchase(uint256 _minWeiToPurchase, uint256 _maxWeiToPurchase) onlyOwner external {
@@ -318,7 +318,7 @@ contract ViolaCrowdsale is Ownable {
     uint bonusTokens = tokens.mul(appliedRate).div(100);
 
     // send purchase event to backend to trigger allocateTokens to the correct receiving address
-    TokenPurchase(_from, weiAmount, appliedRate, tokens, bonusTokens);
+    emit TokenPurchase(_from, weiAmount, appliedRate, tokens, bonusTokens);
   }
 
   // Backend calls this to allocate tokens to an ETH or BTC buyer's receiving address in the DB
@@ -339,7 +339,7 @@ contract ViolaCrowdsale is Ownable {
     if (tokensHasSoldOut()) {
       endCrowdsale();
     }
-    TokenAllocated(_receive,  _tokens, _bonusTokens);
+    emit TokenAllocated(_receive,  _tokens, _bonusTokens);
   }
 
   // Backend calls this to allocate tokens to a FIAT buyer's receiving address in the DB
@@ -361,7 +361,7 @@ contract ViolaCrowdsale is Ownable {
     if (tokensHasSoldOut()) {
       endCrowdsale();
     }
-    ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
+    emit ExternalTokenPurchase(_investor,  _amount, _bonusAmount);
   }
 
   /**
@@ -387,7 +387,7 @@ contract ViolaCrowdsale is Ownable {
 
     _investor.transfer(investedAmt);
 
-    Refunded(_investor, investedAmt);
+    emit Refunded(_investor, investedAmt);
   }
 
   // Called when KYC is rejected to refund the user and de-allocate tokens
@@ -420,7 +420,7 @@ contract ViolaCrowdsale is Ownable {
     // Transfer allocated tokens to the receiving address
     transferTokens(_receive, tokensToClaim);
 
-    TokenDistributed(_receive, tokensToClaim); 
+    emit TokenDistributed(_receive, tokensToClaim); 
   }
 
   // Used by owner to distribute paid tokens from FIAT buyers (non-bonus) to approved KYC users
@@ -439,7 +439,7 @@ contract ViolaCrowdsale is Ownable {
     // Transfer allocated tokens to the receiving address
     transferTokens(_receive, tokensToClaim);
 
-    TokenDistributed(_receive, tokensToClaim); 
+    emit TokenDistributed(_receive, tokensToClaim); 
   }
 
   // Distribute bonus tokens from ETH / BTC purchase
@@ -454,7 +454,7 @@ contract ViolaCrowdsale is Ownable {
 
     transferTokens(_receive, tokensToClaim);
 
-    TokenDistributed(_receive, tokensToClaim);
+    emit TokenDistributed(_receive, tokensToClaim);
   }
 
   // Distribute bonus tokens from FIAT purchase
@@ -469,7 +469,7 @@ contract ViolaCrowdsale is Ownable {
 
     transferTokens(_receive, tokensToClaim);
 
-    TokenDistributed(_receive, tokensToClaim);
+    emit TokenDistributed(_receive, tokensToClaim);
   }
 
   // Refund allocated tokens from FIAT contributors
@@ -488,7 +488,7 @@ contract ViolaCrowdsale is Ownable {
     totalReservedTokenAllocated = totalReservedTokenAllocated.sub(totalInvestorTokens);
     totalTokensAllocated = totalTokensAllocated.sub(totalInvestorTokens);
 
-    ExternalPurchaseRefunded(_investor,externalTokens, externalBonusTokens);
+    emit ExternalPurchaseRefunded(_investor,externalTokens, externalBonusTokens);
   }
 
   //For cases where token are mistakenly sent / airdrops
