@@ -15,14 +15,17 @@ contract ViolaCrowdsale is Ownable {
 
   enum State { Deployed, PendingStart, Active, Paused, Ended, Completed }
 
-  // Status of contract
+  // Status of token sale
   State public status = State.Deployed;
 
   // The token being sold
   VLTToken public violaToken;
 
-  // For checking if address passed KYC
+  // Addresses with passed KYC
   mapping(address=>bool) public addressKYC;
+
+  // Addresses with failed KYC
+  mapping(address=>bool) public addressFailedKYC;
 
   // Total wei sum an address has invested
   mapping(address=>uint) public investedSum;
@@ -394,13 +397,16 @@ contract ViolaCrowdsale is Ownable {
   function rejectKYC(address _from, address _receive) onlyOwner external {
     require(_from != address(0));
     require(_receive != address(0));
-    addressKYC[_receive] = false;
 
+    // Allow refund only when tokens are not yet distributed
+    require(addressKYC[_receive] == false);
+
+    addressFailedKYC[_receive] = true;
     uint256 weiAmount = investedSum[_from];
 
     if (weiAmount > 0) {
-      _refund(_from);
       investedSum[_from] = 0;
+      _refund(_from);
     }
   }
 
@@ -409,7 +415,7 @@ contract ViolaCrowdsale is Ownable {
     require(hasEnded());
     require(_receive != address(0));
 
-    // Record KYC Status of investor to approved
+    // Record KYC Status of investor to `approved`
     addressKYC[_receive] = true;
 
     uint256 tokensToClaim = tokensAllocated[_receive];
