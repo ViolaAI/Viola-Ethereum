@@ -388,6 +388,10 @@ contract ViolaCrowdsale is Ownable {
     tokensAllocated[_investor] = 0;
     bonusTokensAllocated[_investor] = 0;
 
+    // Set invested sum to 0 before transferring
+    investedSum[_investor] = 0;
+
+    // Transfer the refund amount
     _investor.transfer(investedAmt);
 
     emit Refunded(_investor, investedAmt);
@@ -405,7 +409,6 @@ contract ViolaCrowdsale is Ownable {
     uint256 weiAmount = investedSum[_from];
 
     if (weiAmount > 0) {
-      investedSum[_from] = 0;
       _refund(_from);
     }
   }
