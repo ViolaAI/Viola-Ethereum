@@ -24,7 +24,7 @@
     "solc": "^0.4.24",
     "truffle-hdwallet-provider": "0.0.3",
     "truffle-privatekey-provider": "0.0.5",
-    "zeppelin-solidity": "^1.4.0"
+    "zeppelin-solidity": "1.4.0"
   },
   "devDependencies": {
     "babel-preset-env": "^1.6.1",
