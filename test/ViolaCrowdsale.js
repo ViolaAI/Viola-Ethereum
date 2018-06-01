@@ -596,7 +596,17 @@ contract('ViolaCrowdsale', function (accounts) {
             await this.violaCrowdSaleInstance.setCapWeiToPurchase( web3.toWei(0.1, 'ether'), web3.toWei(20, 'ether') )
         })
 
-        it('should receive 20% bonus tokens on day 1', async function() {
+        it('should receive 25% bonus tokens on day 1-2', async function() {
+            await increaseTime(day * 1 + 1)
+            let bonusTokens = web3.toWei(buyAmount * 0.25 * rate, 'ether')
+            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
+            await this.violaCrowdSaleInstance.allocateTokens(accounts[1], tokens, bonusTokens, web3.toWei('10', 'ether'))
+            let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
+            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.25 * rate, 'ether'))
+        })
+
+        it('should receive 20% bonus tokens on day 3-7', async function() {
+            await increaseTime(day * 3 + 1)
             let bonusTokens = web3.toWei(buyAmount * 0.2 * rate, 'ether')
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             await this.violaCrowdSaleInstance.allocateTokens(accounts[1], tokens, bonusTokens, web3.toWei('10', 'ether'))
@@ -604,8 +614,8 @@ contract('ViolaCrowdsale', function (accounts) {
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.2 * rate, 'ether'))
         })
 
-        it('should receive 15% bonus tokens on day 2-3', async function() {
-            await increaseTime(day * 1 + 1)
+        it('should receive 15% bonus tokens on day 8-17', async function() {
+            await increaseTime(day * 8 + 1)
             let bonusTokens = web3.toWei(buyAmount * 0.15 * rate, 'ether')
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             await this.violaCrowdSaleInstance.allocateTokens(accounts[1], tokens, bonusTokens, web3.toWei('10', 'ether'))
@@ -613,22 +623,13 @@ contract('ViolaCrowdsale', function (accounts) {
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.15 * rate, 'ether'))
         })
 
-        it('should receive 10% bonus tokens on day 4', async function() {
-            await increaseTime(day * 4 + 1)
+        it('should receive 10% bonus tokens on day 18 onwards', async function() {
+            await increaseTime(day * 18 + 1)
             let bonusTokens = web3.toWei(buyAmount * 0.1 * rate, 'ether')
             await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
             await this.violaCrowdSaleInstance.allocateTokens(accounts[1], tokens, bonusTokens, web3.toWei('10', 'ether'))
             let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
             bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0.1 * rate, 'ether'))
-        })
-
-        it('should receive 0% bonus tokens on day 11', async function() {
-            await increaseTime(day * 10 + 1)
-            let bonusTokens = web3.toWei(buyAmount * 0 * rate, 'ether')
-            await web3.eth.sendTransaction({from: accounts[1], to: this.violaCrowdSaleInstance.address, gas: 200000,value: web3.toWei(buyAmount, 'ether')})
-            await this.violaCrowdSaleInstance.allocateTokens(accounts[1], tokens, bonusTokens, web3.toWei('10', 'ether'))
-            let bonusToken = await this.violaCrowdSaleInstance.bonusTokensAllocated(accounts[1])
-            bonusToken.should.be.bignumber.equal(web3.toWei(buyAmount * 0 * rate, 'ether'))
         })
 
         it('should tally total tokens when using fiat and eth', async function () {
