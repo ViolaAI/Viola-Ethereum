@@ -71,8 +71,8 @@ contract ViolaCrowdsale is Ownable {
   // Extra bonus token to give *in percentage*
   uint public bonusTokenRateLevelOne = 25; // 2 days
   uint public bonusTokenRateLevelTwo = 20; // 5 days
-  uint public bonusTokenRateLevelThree = 15; // 8 days
-  uint public bonusTokenRateLevelFour = 10; // 15 days
+  uint public bonusTokenRateLevelThree = 15; // 10 days
+  uint public bonusTokenRateLevelFour = 10; // 13 days
 
   // Total amount of tokens allocated for crowdsale
   uint256 public totalTokensAllocated;
@@ -263,7 +263,7 @@ contract ViolaCrowdsale is Ownable {
     bool bonusDuration1 = now >= startTime && now <= (startTime + 2 days);  // Day 1-2 (2 days)
     bool bonusDuration2 = now > (startTime + 2 days) && now <= (startTime + 7 days); // Day 3-7 (5 days)
     bool bonusDuration3 = now > (startTime + 7 days) && now <= (startTime + 17 days); // Day 8-17 (10 days)
-    bool bonusDuration4 = now > (startTime + 17 days) && now <= endTime; // Day 18 to end (15 days or less)
+    bool bonusDuration4 = now > (startTime + 17 days) && now <= endTime; // Day 18 to end (13 days or less)
 
     if (bonusDuration1) {
       return bonusTokenRateLevelOne;
